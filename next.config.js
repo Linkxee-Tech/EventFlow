@@ -1,7 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Use webpack to avoid SWC issues on Windows
-  webpack: (config) => config,
   serverExternalPackages: [
     '@aws-sdk/client-dynamodb',
     '@aws-sdk/lib-dynamodb',
