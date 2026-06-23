@@ -19,7 +19,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     }
     return apiSuccess(availability);
   } catch (err) {
-    logError('GET /api/events/[slug]/availability', err);
+    logError('GET /api/events/availability/[slug]', err);
     return apiError('Failed to load availability', 500);
   }
 }
