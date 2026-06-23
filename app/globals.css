@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 238 46% 8%;
+    --foreground: 210 40% 98%;
+    --card: 238 30% 14%;
+    --card-foreground: 210 40% 98%;
+    --popover: 238 30% 14%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 239 84% 67%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 239 84% 67%;
+    --radius: 0.625rem;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground antialiased; }
+
+  /* Phase 9: Font size ≥ 16px on inputs prevents iOS auto-zoom */
+  input, textarea, select {
+    font-size: max(16px, 1rem);
+  }
+}
+
+/* Phase 9: Smooth scrolling */
+html { scroll-behavior: smooth; }
+
+/* Phase 9: Custom scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* Phase 6: QR scanner line animation */
+@keyframes scan-line {
+  0%, 100% { top: 20px; }
+  50% { top: calc(100% - 22px); }
+}
+.scan-line-animated {
+  position: absolute;
+  animation: scan-line 2s ease-in-out infinite;
+}
+
+/* Phase 4: QR auto-refresh pulse */
+@keyframes qr-refresh {
+  0% { opacity: 1; }
+  40% { opacity: 0.2; }
+  100% { opacity: 1; }
+}
+.qr-refreshing { animation: qr-refresh 0.6s ease-in-out; }
+
+/* Phase 9: Slide-in animations (used in QRScannerWithOffline result card) */
+@keyframes slide-in-from-bottom {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+.animate-in { animation-fill-mode: both; }
+.slide-in-from-bottom-2 { animation-name: slide-in-from-bottom; animation-duration: 0.2s; }
+
+/* Stripe Elements dark theme override */
+.StripeElement {
+  background: #0F0F1A !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  border-radius: 12px !important;
+  padding: 12px !important;
+  transition: border-color 0.15s !important;
+}
+.StripeElement--focus {
+  border-color: #6366F1 !important;
+  outline: none !important;
+}
+.StripeElement--invalid {
+  border-color: #EF4444 !important;
+}

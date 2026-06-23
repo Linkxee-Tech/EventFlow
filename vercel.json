@@ -1,0 +1,32 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "env": {
+    "NEXT_PUBLIC_APP_URL": "https://eventflow.vercel.app"
+  },
+  "functions": {
+    "app/api/webhooks/stripe/route.ts": { "maxDuration": 15, "memory": 256 },
+    "app/api/tickets/reserve/route.ts": { "maxDuration": 15, "memory": 256 },
+    "app/api/tickets/confirm/route.ts": { "maxDuration": 15, "memory": 256 },
+    "app/api/ai/generate-flyer/route.ts": { "maxDuration": 60, "memory": 512 }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" }
+      ]
+    }
+  ]
+}

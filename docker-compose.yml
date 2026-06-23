@@ -1,0 +1,49 @@
+version: '3.8'
+
+# Local DynamoDB for offline development — matches production schema exactly.
+# Usage:
+#   docker-compose up -d          # Start local DynamoDB
+#   npm run db:seed               # Create table + seed data
+#   docker-compose down           # Stop
+
+services:
+  dynamodb-local:
+    image: amazon/dynamodb-local:2.4.0
+    container_name: eventflow-dynamodb
+    restart: unless-stopped
+    ports:
+      - '8000:8000'
+    command: '-jar DynamoDBLocal.jar -sharedDb -dbPath /data'
+    volumes:
+      - dynamodb_data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -s http://localhost:8000 || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # DynamoDB Admin UI — browse tables at http://localhost:8001
+  dynamodb-admin:
+    image: aaronshaf/dynamodb-admin:latest
+    container_name: eventflow-dynamodb-admin
+    ports:
+      - '8001:8001'
+    environment:
+      - DYNAMO_ENDPOINT=http://dynamodb-local:8000
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+    depends_on:
+      dynamodb-local:
+        condition: service_healthy
+
+volumes:
+  dynamodb_data:
+    driver: local
+
+# Add these to your .env.local for local development:
+#   AWS_REGION=us-east-1
+#   AWS_ACCESS_KEY_ID=local
+#   AWS_SECRET_ACCESS_KEY=local
+#   DYNAMODB_ENDPOINT=http://localhost:8000
+#   DYNAMODB_TABLE_NAME=EventFlow
