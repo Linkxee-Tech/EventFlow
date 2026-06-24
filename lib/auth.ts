@@ -1,64 +1,57 @@
 import NextAuth, { type NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
-import EmailProvider from 'next-auth/providers/email';
-import { db, getUser, putUser } from '@/lib/db';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import { db, getUser, putUser, getUserByEmail } from '@/lib/db';
 import type { UserProfile } from '@/types';
-import { randomUUID } from 'crypto';
+import { createHash } from 'crypto';
 
-// Custom DynamoDB adapter shim — stores sessions in DynamoDB
-// For production, use the official @auth/dynamodb-adapter package
-const DynamoDBAdapterShim = {
-  async createUser(user: { email: string; name?: string; image?: string }) {
-    const userId = randomUUID();
-    const profile: UserProfile = {
-      userId,
-      email: user.email,
-      name: user.name ?? user.email.split('@')[0],
-      role: 'organizer',
-      createdAt: new Date().toISOString(),
-    };
-    await putUser(profile);
-    return { id: userId, ...user };
-  },
-  async getUser(id: string) {
-    const user = await getUser(id);
-    if (!user) return null;
-    return { id: user.userId, email: user.email, name: user.name };
-  },
-  async getUserByEmail(email: string) {
-    // In production: GSI on email field
-    return null;
-  },
-  async getUserByAccount() {
-    return null;
-  },
-  async updateUser(user: { id: string }) {
-    return user;
-  },
-  async linkAccount() {
-    return undefined;
-  },
-  async createSession(session: { sessionToken: string; userId: string; expires: Date }) {
-    return session;
-  },
-  async getSessionAndUser(sessionToken: string) {
-    return null;
-  },
-  async updateSession(session: { sessionToken: string }) {
-    return null;
-  },
-  async deleteSession(sessionToken: string) {},
-};
+/**
+ * Simple password hashing — SHA-256 with a server-side salt.
+ * For production, replace with bcrypt or Argon2.
+ */
+function hashPassword(password: string): string {
+  const salt = process.env.NEXTAUTH_SECRET ?? 'eventflow-salt';
+  return createHash('sha256').update(salt + password).digest('hex');
+}
+
+const googleClientId = process.env.GOOGLE_CLIENT_ID ?? '';
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET ?? '';
+const hasGoogleCredentials =
+  googleClientId.length > 0 &&
+  !googleClientId.startsWith('replace_') &&
+  googleClientSecret.length > 0 &&
+  !googleClientSecret.startsWith('replace_');
 
 export const authOptions: NextAuthOptions = {
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-    EmailProvider({
-      server: process.env.EMAIL_SERVER,
-      from: process.env.EMAIL_FROM ?? 'tickets@eventflow.app',
+    // Only enable Google OAuth when real credentials are configured
+    ...(hasGoogleCredentials
+      ? [
+          GoogleProvider({
+            clientId: googleClientId,
+            clientSecret: googleClientSecret,
+          }),
+        ]
+      : []),
+
+    // CredentialsProvider replaces EmailProvider — no DB adapter required
+    CredentialsProvider({
+      name: 'Email & Password',
+      credentials: {
+        email: { label: 'Email', type: 'email', placeholder: 'you@example.com' },
+        password: { label: 'Password', type: 'password' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
+
+        const user = await getUserByEmail(credentials.email);
+        if (!user) return null;
+
+        // Check password hash
+        if (user.passwordHash !== hashPassword(credentials.password)) return null;
+
+        return { id: user.userId, email: user.email, name: user.name };
+      },
     }),
   ],
 

@@ -12,6 +12,7 @@ import {
   TransactWriteCommand,
 } from '@aws-sdk/lib-dynamodb';
 import type { Event, Ticket, Order, UserProfile, TicketTier } from '@/types';
+import * as mem from '@/lib/db-memory';
 
 // ─── Client Setup ─────────────────────────────────────────────────────────────
 // Supports local DynamoDB via DYNAMODB_ENDPOINT env var (see docker-compose.yml)
@@ -24,6 +25,8 @@ const clientConfig: any = {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? 'local',
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? 'local',
   },
+  // Fail fast so the in-memory fallback kicks in quickly when Docker isn't running
+  maxAttempts: 1,
 };
 if (isLocalDynamo) clientConfig.endpoint = process.env.DYNAMODB_ENDPOINT;
 
@@ -34,6 +37,22 @@ export const db = DynamoDBDocumentClient.from(client, {
 });
 
 const TABLE = process.env.DYNAMODB_TABLE_NAME ?? 'EventFlow';
+
+/**
+ * Returns true for network-level errors (Docker not running, DynamoDB unreachable).
+ * In these cases we fall back to the in-memory store automatically.
+ */
+function isConnectionError(err: unknown): boolean {
+  const code = (err as any)?.code ?? (err as any)?.$metadata?.httpStatusCode;
+  return (
+    code === 'ECONNREFUSED' ||
+    code === 'ENOTFOUND' ||
+    code === 'ETIMEDOUT' ||
+    (err as any)?.name === 'TimeoutError' ||
+    (err as any)?.message?.includes('ECONNREFUSED')
+  );
+}
+
 
 // ─── Events ───────────────────────────────────────────────────────────────────
 
@@ -325,27 +344,61 @@ export async function updateOrderStatus(
 // ─── Users ────────────────────────────────────────────────────────────────────
 
 export async function getUser(userId: string): Promise<UserProfile | null> {
-  const { Item } = await db.send(
-    new GetCommand({
-      TableName: TABLE,
-      Key: { PK: `USER#${userId}`, SK: 'PROFILE' },
-    })
-  );
-  return Item ? (Item as UserProfile) : null;
+  try {
+    const { Item } = await db.send(
+      new GetCommand({
+        TableName: TABLE,
+        Key: { PK: `USER#${userId}`, SK: 'PROFILE' },
+      })
+    );
+    return Item ? (Item as UserProfile) : null;
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memGetUser(userId);
+    throw err;
+  }
 }
 
-export async function putUser(user: UserProfile): Promise<void> {
-  await db.send(
-    new PutCommand({
-      TableName: TABLE,
-      Item: {
-        PK: `USER#${user.userId}`,
-        SK: 'PROFILE',
-        ...user,
-      },
-    })
-  );
+export async function putUser(user: UserProfile & { passwordHash?: string }): Promise<void> {
+  try {
+    await db.send(
+      new PutCommand({
+        TableName: TABLE,
+        Item: {
+          PK: `USER#${user.userId}`,
+          SK: 'PROFILE',
+          ...user,
+        },
+      })
+    );
+  } catch (err) {
+    if (isConnectionError(err)) { mem.memPutUser(user); return; }
+    throw err;
+  }
 }
+
+export async function getUserByEmail(
+  email: string
+): Promise<(UserProfile & { passwordHash?: string }) | null> {
+  try {
+    // Query GSI1 where SK = 'PROFILE' and filter by email
+    const { Items = [] } = await db.send(
+      new QueryCommand({
+        TableName: TABLE,
+        IndexName: 'GSI1',
+        KeyConditionExpression: 'SK = :sk',
+        FilterExpression: 'email = :email',
+        ExpressionAttributeValues: { ':sk': 'PROFILE', ':email': email },
+        Limit: 1,
+      })
+    );
+    if (!Items.length) return null;
+    return Items[0] as UserProfile & { passwordHash?: string };
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memGetUserByEmail(email);
+    throw err;
+  }
+}
+
 
 export async function updateUserStripeAccount(
   userId: string,
