@@ -64,32 +64,15 @@ Return ONLY valid JSON (no markdown) with keys:
     try { result = JSON.parse(text.replace(/```json|```/g, '').trim()); }
     catch { return apiError('AI response invalid. Please try again.', 500); }
 
-    // Optional Google Imagen 3 image generation
-    if (generateImage && result.imagePrompt && process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    // Optional image generation using Pollinations.ai (Free, no API key required!)
+    if (generateImage && result.imagePrompt) {
       try {
-        const googleRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${process.env.GOOGLE_GENERATIVE_AI_API_KEY}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              instances: [{ prompt: result.imagePrompt }],
-              parameters: { sampleCount: 1, aspectRatio: "1:1", outputOptions: { mimeType: 'image/jpeg' } },
-            }),
-          }
-        );
-        if (googleRes.ok) {
-          const data = await googleRes.json();
-          const base64 = data.predictions?.[0]?.bytesBase64Encoded;
-          if (base64) {
-            result.imageUrl = `data:image/jpeg;base64,${base64}`;
-          }
-        } else {
-          console.warn('[ai] Imagen API error:', await googleRes.text());
-          result.imageUrl = null;
-        }
+        const seed = Math.floor(Math.random() * 1000000);
+        const encodedPrompt = encodeURIComponent(result.imagePrompt);
+        // We use the URL directly, avoiding DynamoDB 400KB base64 limits!
+        result.imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&seed=${seed}`;
       } catch (e) { 
-        console.warn('[ai] Imagen failed:', e); 
+        console.warn('[ai] Pollinations failed:', e); 
         result.imageUrl = null; 
       }
     }
