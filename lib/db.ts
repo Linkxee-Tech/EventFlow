@@ -44,11 +44,15 @@ const TABLE = process.env.DYNAMODB_TABLE_NAME ?? 'EventFlow';
  */
 function isConnectionError(err: unknown): boolean {
   const code = (err as any)?.code ?? (err as any)?.$metadata?.httpStatusCode;
+  const name = (err as any)?.name;
+  const detail = (err as any)?.detail;
   return (
     code === 'ECONNREFUSED' ||
     code === 'ENOTFOUND' ||
     code === 'ETIMEDOUT' ||
-    (err as any)?.name === 'TimeoutError' ||
+    name === 'TimeoutError' ||
+    name === 'UnknownError' ||
+    detail === 'Not Found' ||
     (err as any)?.message?.includes('ECONNREFUSED')
   );
 }
