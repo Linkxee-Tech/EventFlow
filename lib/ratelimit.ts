@@ -56,14 +56,19 @@ export async function checkRateLimit(
     prefix: `eventflow:${endpoint}`,
   });
 
-  const result = await limiter.limit(identifier);
+  try {
+    const result = await limiter.limit(identifier);
 
-  return {
-    success: result.success,
-    limit: result.limit,
-    remaining: result.remaining,
-    reset: result.reset,
-  };
+    return {
+      success: result.success,
+      limit: result.limit,
+      remaining: result.remaining,
+      reset: result.reset,
+    };
+  } catch (error) {
+    console.warn('[ratelimit] Failed to connect to Redis. Falling back to allowed.', error);
+    return { success: true, limit: 5, remaining: 5, reset: Date.now() + 60_000 };
+  }
 }
 
 /**
