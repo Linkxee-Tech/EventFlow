@@ -216,6 +216,12 @@ export function memListRecentOrdersByOrganizer(organizerId: string, limit = 10):
     .slice(0, limit);
 }
 
+export function memListOrdersByBuyerEmail(buyerEmail: string): Order[] {
+  return Array.from(getStore().orders.values())
+    .filter((o) => o.buyerEmail === buyerEmail)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
 export function memConfirmTicketTransaction(ticket: Ticket, order: Order): void {
   const store = getStore();
   const existing = store.tickets.get(ticket.ticketId);

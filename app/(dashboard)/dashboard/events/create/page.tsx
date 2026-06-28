@@ -202,6 +202,18 @@ export default function CreateEventPage() {
               <Input placeholder="123 Main St, Lagos"
                 value={details.venue} onChange={(e) => setDetails({ ...details, venue: e.target.value })} />
             </div>
+            {details.venue && (
+              <div className="col-span-2 mt-2 rounded-xl overflow-hidden border border-white/10 h-48 bg-white/5 relative">
+                <iframe
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  allowFullScreen
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(details.venue)}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
+                />
+              </div>
+            )}
           </div>
           <Button onClick={() => setStep(2)} className="w-full">
             Next: Ticket Tiers →

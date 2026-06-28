@@ -10,6 +10,7 @@ import {
   DeleteCommand,
   QueryCommand,
   TransactWriteCommand,
+  ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import type { Event, Ticket, Order, UserProfile, TicketTier } from '@/types';
 import * as mem from '@/lib/db-memory';
@@ -611,6 +612,30 @@ export async function listRecentOrdersByOrganizer(
     return Items as Order[];
   } catch (err) {
     if (isConnectionError(err)) return mem.memListRecentOrdersByOrganizer(organizerId, limit);
+    throw err;
+  }
+}
+
+export async function listOrdersByBuyerEmail(buyerEmail: string): Promise<Order[]> {
+  try {
+    // TODO: Switch to GSI2 (where buyerEmail is PK) once created by the user.
+    // For now, using a Scan as requested for the hackathon MVP.
+    const { Items = [] } = await db.send(
+      new ScanCommand({
+        TableName: TABLE,
+        FilterExpression: 'begins_with(PK, :prefix) AND SK = :sk AND buyerEmail = :email',
+        ExpressionAttributeValues: {
+          ':prefix': 'ORDER#',
+          ':sk': 'METADATA',
+          ':email': buyerEmail,
+        },
+      })
+    );
+    return (Items as Order[]).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memListOrdersByBuyerEmail(buyerEmail);
     throw err;
   }
 }

@@ -3,6 +3,8 @@ import { listPublishedEvents } from '@/lib/db';
 import { formatCents, formatEventDate } from '@/lib/utils';
 import { Calendar, MapPin, ArrowRight, Zap, Shield, DollarSign } from 'lucide-react';
 import { EventList } from '@/components/shared/EventList';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -13,6 +15,8 @@ export const metadata: Metadata = {
 export const revalidate = 60;
 
 export default async function HomePage() {
+  const session = await getServerSession(authOptions);
+  
   let events: any[] = [];
   try {
     events = await listPublishedEvents();
@@ -29,15 +33,31 @@ export default async function HomePage() {
           <span className="font-semibold tracking-tight">EventFlow</span>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/login" className="text-sm text-slate-400 hover:text-white transition-colors">
-            Sign in
-          </Link>
-          <Link
-            href="/register"
-            className="text-sm bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
-          >
-            Start selling
-          </Link>
+          {session ? (
+            <>
+              <Link href="/my-tickets" className="text-sm text-slate-400 hover:text-white transition-colors">
+                My Tickets
+              </Link>
+              <Link
+                href="/dashboard"
+                className="text-sm bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
+              >
+                Dashboard
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="text-sm text-slate-400 hover:text-white transition-colors">
+                Sign in
+              </Link>
+              <Link
+                href="/register"
+                className="text-sm bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
+              >
+                Start selling
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 
