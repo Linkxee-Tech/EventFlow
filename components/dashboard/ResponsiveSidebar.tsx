@@ -59,6 +59,12 @@ function NavLink({
 
 function SidebarContent({ user, onNavClick }: { user: User; onNavClick?: () => void }) {
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const initials = (user.name ?? user.email ?? 'U')
     .split(' ').map((p) => p[0]).join('').toUpperCase().slice(0, 2);
 
@@ -77,7 +83,7 @@ function SidebarContent({ user, onNavClick }: { user: User; onNavClick?: () => v
             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5 transition-colors text-slate-400 hover:text-white"
             aria-label="Toggle theme"
           >
-            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {mounted ? (theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />) : <div className="h-4 w-4" />}
           </button>
         </div>
       </div>
