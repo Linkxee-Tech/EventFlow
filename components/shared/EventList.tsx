@@ -11,7 +11,12 @@ export function EventList({ events }: { events: Event[] }) {
 
   const filteredEvents = events.filter((event) => {
     const term = search.toLowerCase();
-    return event.name.toLowerCase().includes(term) || event.venue.toLowerCase().includes(term);
+    const dateStr = formatEventDate(event.date).toLowerCase();
+    return (
+      event.name.toLowerCase().includes(term) ||
+      event.venue.toLowerCase().includes(term) ||
+      dateStr.includes(term)
+    );
   });
 
   return (
@@ -24,7 +29,7 @@ export function EventList({ events }: { events: Event[] }) {
         <div className="w-full sm:w-64">
           <input
             type="text"
-            placeholder="Search events or venues..."
+            placeholder="Search events, venues, or dates..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-[#1A1A2E] border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"

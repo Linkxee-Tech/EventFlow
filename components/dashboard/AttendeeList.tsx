@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import type { Ticket, TicketTier } from '@/types';
-import { CheckCircle2, Circle } from 'lucide-react';
+import { CheckCircle2, Circle, Undo2, Loader2 } from 'lucide-react';
 
 interface Props {
   tickets: Ticket[];
@@ -13,6 +13,7 @@ interface Props {
 
 export function AttendeeList({ tickets: initialTickets, tiers, eventId }: Props) {
   const [tickets, setTickets] = useState(initialTickets);
+  const [refundingId, setRefundingId] = useState<string | null>(null);
 
   if (tickets.length === 0) {
     return (
@@ -62,6 +63,30 @@ export function AttendeeList({ tickets: initialTickets, tiers, eventId }: Props)
     }
   }
 
+  async function handleRefund(ticket: Ticket) {
+    if (!confirm(`Are you sure you want to refund ${ticket.buyerName}? This will invalidate their ticket.`)) return;
+    
+    setRefundingId(ticket.ticketId);
+    try {
+      const res = await fetch(`/api/tickets/${ticket.ticketId}/refund`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error ?? 'Refund failed');
+      } else {
+        toast.success(`Refunded ${ticket.buyerName} successfully`);
+        setTickets(prev => prev.filter(t => t.ticketId !== ticket.ticketId));
+      }
+    } catch {
+      toast.error('Network error. Try again.');
+    } finally {
+      setRefundingId(null);
+    }
+  }
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
@@ -103,6 +128,18 @@ export function AttendeeList({ tickets: initialTickets, tiers, eventId }: Props)
                       <><CheckCircle2 className="h-3 w-3" /> Checked in</>
                     ) : (
                       <><Circle className="h-3 w-3" /> Check in</>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleRefund(ticket)}
+                    disabled={refundingId === ticket.ticketId}
+                    className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-all bg-white/5 border-white/10 text-red-400 hover:border-red-500/30 disabled:opacity-50 ml-2"
+                    title="Refund ticket"
+                  >
+                    {refundingId === ticket.ticketId ? (
+                      <><Loader2 className="h-3 w-3 animate-spin" /> Refunding</>
+                    ) : (
+                      <><Undo2 className="h-3 w-3" /> Refund</>
                     )}
                   </button>
                 </td>
