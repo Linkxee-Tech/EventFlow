@@ -96,13 +96,13 @@ export function NotificationBell() {
 
       {open && (
         <div className="absolute right-0 top-10 w-72 bg-[#1A1A2E] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50">
-          <div className="px-4 py-3 border-b border-white/8 flex items-center justify-between">
-            <span className="text-sm font-medium">Recent sales</span>
-            <span className="text-[10px] text-slate-500">Auto-refreshes</span>
+          <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+            <span className="text-sm font-medium text-white">Recent sales</span>
+            <span className="text-[10px] text-slate-400">Auto-refreshes</span>
           </div>
           <div className="max-h-72 overflow-y-auto">
             {sales.length === 0 ? (
-              <div className="py-8 text-center text-xs text-slate-500">
+              <div className="py-8 text-center text-xs text-slate-400">
                 No sales yet
               </div>
             ) : (
