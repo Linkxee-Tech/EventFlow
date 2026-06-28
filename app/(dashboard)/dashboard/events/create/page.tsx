@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { PlusCircle, Trash2, Wand2, CheckCircle, Download } from 'lucide-react';
+import { PlusCircle, Trash2, Wand2, CheckCircle, Download, AlertCircle, UploadCloud } from 'lucide-react';
+import Link from 'next/link';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -30,6 +31,19 @@ export default function CreateEventPage() {
   const [flyerStyle, setFlyerStyle] = useState('vibrant retro');
   const [captions, setCaptions] = useState<{ twitter?: string; linkedin?: string; instagram?: string } | null>(null);
   const [generatingCaptions, setGeneratingCaptions] = useState(false);
+
+  const [checkingStripe, setCheckingStripe] = useState(true);
+  const [stripeConnected, setStripeConnected] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/user/me')
+      .then(res => res.json())
+      .then(json => {
+        setStripeConnected(!!json.data?.stripeOnboardingComplete);
+      })
+      .catch(() => setStripeConnected(true)) // fail open if error
+      .finally(() => setCheckingStripe(false));
+  }, []);
 
   const [details, setDetails] = useState({
     name: '',
@@ -81,6 +95,64 @@ export default function CreateEventPage() {
     } catch {
       toast.error('Generation failed. Try again.');
     } finally {
+      setGeneratingFlyer(false);
+    }
+  }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file.');
+      return;
+    }
+
+    setGeneratingFlyer(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          // Compress the image
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            setFlyerImageUrl(dataUrl);
+            setFlyerCopy('');
+            setFlyerTagline('Custom Flyer');
+            toast.success('Image uploaded and optimized!');
+          } else {
+            toast.error('Could not process image.');
+          }
+          setGeneratingFlyer(false);
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      toast.error('Failed to upload image.');
       setGeneratingFlyer(false);
     }
   }
@@ -155,7 +227,30 @@ export default function CreateEventPage() {
     <div className="p-7 max-w-3xl">
       <h1 className="text-2xl font-semibold tracking-tight mb-6">Create Event</h1>
 
-      {/* Step indicator */}
+      {checkingStripe ? (
+        <div className="animate-pulse flex space-x-4 mb-6">
+          <div className="h-20 bg-white/5 rounded-xl w-full"></div>
+        </div>
+      ) : !stripeConnected ? (
+        <div className="mb-8 p-5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-4">
+          <AlertCircle className="h-6 w-6 text-amber-500 shrink-0" />
+          <div>
+            <h3 className="text-amber-500 font-semibold mb-1">Stripe Account Required</h3>
+            <p className="text-sm text-amber-200/80 mb-3">
+              You must connect your Stripe account before you can create and publish an event. This ensures you can receive payouts from ticket sales.
+            </p>
+            <Link 
+              href="/dashboard/settings" 
+              className="inline-flex bg-amber-500 hover:bg-amber-600 text-amber-950 font-medium text-sm px-4 py-2 rounded-lg transition-colors"
+            >
+              Connect Stripe Now
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
+      <div className={!checkingStripe && !stripeConnected ? 'opacity-50 pointer-events-none' : ''}>
+        {/* Step indicator */}
       <div className="flex items-center mb-8">
         {steps.map((label, i) => (
           <div key={label} className="flex items-center flex-1">
@@ -314,14 +409,35 @@ export default function CreateEventPage() {
               )}
             </div>
           </div>
-          <div className="bg-card border rounded-xl p-5 space-y-3">
-            <Label>Visual style prompt</Label>
-            <Input placeholder="e.g. vibrant Afro-futurist neon, retro 80s synthwave"
-              value={flyerStyle} onChange={(e) => setFlyerStyle(e.target.value)} />
-            <Button onClick={generateFlyer} disabled={generatingFlyer} className="w-full" variant="outline">
-              <Wand2 className="h-4 w-4 mr-2" />
-              {generatingFlyer ? 'Generating...' : 'Generate with AI'}
-            </Button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-card border rounded-xl p-5 space-y-3 flex flex-col justify-center items-center text-center border-dashed hover:border-indigo-500/50 transition-colors relative cursor-pointer group">
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleImageUpload} 
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                disabled={generatingFlyer}
+              />
+              <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <UploadCloud className="h-6 w-6 text-indigo-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Upload a flyer</p>
+                <p className="text-xs text-muted-foreground mt-1">Drag and drop or click to browse</p>
+              </div>
+            </div>
+            
+            <div className="bg-card border rounded-xl p-5 space-y-3 flex flex-col">
+              <div className="flex-1 space-y-3">
+                <Label>Or generate with AI</Label>
+                <Input placeholder="e.g. vibrant Afro-futurist neon, retro 80s synthwave"
+                  value={flyerStyle} onChange={(e) => setFlyerStyle(e.target.value)} />
+              </div>
+              <Button onClick={generateFlyer} disabled={generatingFlyer} className="w-full" variant="outline">
+                <Wand2 className="h-4 w-4 mr-2" />
+                {generatingFlyer ? 'Generating...' : '✨ Generate AI Flyer'}
+              </Button>
+            </div>
           </div>
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => setStep(2)} className="flex-1">← Back</Button>
@@ -411,6 +527,7 @@ export default function CreateEventPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

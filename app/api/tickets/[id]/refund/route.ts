@@ -3,7 +3,7 @@ import { getTicket, getOrder, putTicket, putOrder, getEvent } from '@/lib/db';
 import { apiError, apiSuccess, requireAuth } from '@/lib/utils';
 import { stripe } from '@/lib/stripe';
 
-type Props = { params: Promise<{ ticketId: string }> };
+type Props = { params: Promise<{ id: string }> };
 
 export async function POST(req: NextRequest, { params }: Props) {
   try {
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest, { params }: Props) {
     if (!body?.eventId) return apiError('eventId is required', 400);
 
     const resolvedParams = await params;
-    const ticketId = resolvedParams.ticketId;
+    const ticketId = resolvedParams.id;
 
     const event = await getEvent(body.eventId);
     if (!event) return apiError('Event not found', 404);

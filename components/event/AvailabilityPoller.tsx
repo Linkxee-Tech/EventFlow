@@ -25,7 +25,7 @@ export function AvailabilityPoller({ slug, tiers, onUpdate }: Props) {
 
   const poll = useCallback(async () => {
     try {
-      const res = await fetch(`/api/events/${slug}/availability`, {
+      const res = await fetch(`/api/events/availability/${slug}`, {
         cache: 'no-store',
       });
       if (!res.ok) return;

@@ -226,17 +226,36 @@ export async function putTier(eventId: string, tier: TicketTier): Promise<void> 
   }
 }
 
+export async function deleteTier(eventId: string, tierId: string): Promise<void> {
+  try {
+    await db.send(
+      new DeleteCommand({
+        TableName: TABLE,
+        Key: { PK: `EVENT#${eventId}`, SK: `TIER#${tierId}` },
+      })
+    );
+  } catch (err) {
+    if (isConnectionError(err)) { mem.memDeleteTier(eventId, tierId); return; }
+    throw err;
+  }
+}
+
 export async function getTier(
   eventId: string,
   tierId: string
 ): Promise<TicketTier | null> {
-  const { Item } = await db.send(
-    new GetCommand({
-      TableName: TABLE,
-      Key: { PK: `EVENT#${eventId}`, SK: `TIER#${tierId}` },
-    })
-  );
-  return Item ? tierFromDynamo(Item) : null;
+  try {
+    const { Item } = await db.send(
+      new GetCommand({
+        TableName: TABLE,
+        Key: { PK: `EVENT#${eventId}`, SK: `TIER#${tierId}` },
+      })
+    );
+    return Item ? tierFromDynamo(Item) : null;
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memGetTier(eventId, tierId);
+    throw err;
+  }
 }
 
 /**
@@ -248,16 +267,21 @@ export async function atomicDecrementAvailability(
   tierId: string,
   quantity: number
 ): Promise<void> {
-  await db.send(
-    new UpdateCommand({
-      TableName: TABLE,
-      Key: { PK: `EVENT#${eventId}`, SK: `TIER#${tierId}` },
-      UpdateExpression:
-        'SET availableCount = availableCount - :q, soldCount = soldCount + :q',
-      ConditionExpression: 'availableCount >= :q',
-      ExpressionAttributeValues: { ':q': quantity },
-    })
-  );
+  try {
+    await db.send(
+      new UpdateCommand({
+        TableName: TABLE,
+        Key: { PK: `EVENT#${eventId}`, SK: `TIER#${tierId}` },
+        UpdateExpression:
+          'SET availableCount = availableCount - :q, soldCount = soldCount + :q',
+        ConditionExpression: 'availableCount >= :q',
+        ExpressionAttributeValues: { ':q': quantity },
+      })
+    );
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memAtomicDecrementAvailability(eventId, tierId, quantity);
+    throw err;
+  }
 }
 
 export { ConditionalCheckFailedException };
@@ -265,29 +289,39 @@ export { ConditionalCheckFailedException };
 // ─── Tickets ──────────────────────────────────────────────────────────────────
 
 export async function putTicket(ticket: Ticket): Promise<void> {
-  await db.send(
-    new PutCommand({
-      TableName: TABLE,
-      Item: {
-        PK: `EVENT#${ticket.eventId}`,
-        SK: `TICKET#${ticket.ticketId}`,
-        ...ticket,
-      },
-    })
-  );
+  try {
+    await db.send(
+      new PutCommand({
+        TableName: TABLE,
+        Item: {
+          PK: `EVENT#${ticket.eventId}`,
+          SK: `TICKET#${ticket.ticketId}`,
+          ...ticket,
+        },
+      })
+    );
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memPutTicket(ticket);
+    throw err;
+  }
 }
 
 export async function getTicket(
   eventId: string,
   ticketId: string
 ): Promise<Ticket | null> {
-  const { Item } = await db.send(
-    new GetCommand({
-      TableName: TABLE,
-      Key: { PK: `EVENT#${eventId}`, SK: `TICKET#${ticketId}` },
-    })
-  );
-  return Item ? (Item as Ticket) : null;
+  try {
+    const { Item } = await db.send(
+      new GetCommand({
+        TableName: TABLE,
+        Key: { PK: `EVENT#${eventId}`, SK: `TICKET#${ticketId}` },
+      })
+    );
+    return Item ? (Item as Ticket) : null;
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memGetTicket(eventId, ticketId);
+    throw err;
+  }
 }
 
 export async function updateTicketStatus(
@@ -307,54 +341,74 @@ export async function updateTicketStatus(
     });
   }
 
-  await db.send(
-    new UpdateCommand({
-      TableName: TABLE,
-      Key: { PK: `EVENT#${eventId}`, SK: `TICKET#${ticketId}` },
-      UpdateExpression: `SET ${updates.join(', ')}`,
-      ExpressionAttributeNames: names,
-      ExpressionAttributeValues: values,
-    })
-  );
+  try {
+    await db.send(
+      new UpdateCommand({
+        TableName: TABLE,
+        Key: { PK: `EVENT#${eventId}`, SK: `TICKET#${ticketId}` },
+        UpdateExpression: `SET ${updates.join(', ')}`,
+        ExpressionAttributeNames: names,
+        ExpressionAttributeValues: values,
+      })
+    );
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memUpdateTicketStatus(eventId, ticketId, status, extra);
+    throw err;
+  }
 }
 
 export async function listTicketsByEvent(eventId: string): Promise<Ticket[]> {
-  const { Items = [] } = await db.send(
-    new QueryCommand({
-      TableName: TABLE,
-      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-      ExpressionAttributeValues: {
-        ':pk': `EVENT#${eventId}`,
-        ':prefix': 'TICKET#',
-      },
-    })
-  );
-  return Items as Ticket[];
+  try {
+    const { Items = [] } = await db.send(
+      new QueryCommand({
+        TableName: TABLE,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+        ExpressionAttributeValues: {
+          ':pk': `EVENT#${eventId}`,
+          ':prefix': 'TICKET#',
+        },
+      })
+    );
+    return Items as Ticket[];
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memListTicketsByEvent(eventId);
+    throw err;
+  }
 }
 
 // ─── Orders ───────────────────────────────────────────────────────────────────
 
 export async function putOrder(order: Order): Promise<void> {
-  await db.send(
-    new PutCommand({
-      TableName: TABLE,
-      Item: {
-        PK: `ORDER#${order.orderId}`,
-        SK: 'METADATA',
-        ...order,
-      },
-    })
-  );
+  try {
+    await db.send(
+      new PutCommand({
+        TableName: TABLE,
+        Item: {
+          PK: `ORDER#${order.orderId}`,
+          SK: 'METADATA',
+          ...order,
+        },
+      })
+    );
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memPutOrder(order);
+    throw err;
+  }
 }
 
 export async function getOrder(orderId: string): Promise<Order | null> {
-  const { Item } = await db.send(
-    new GetCommand({
-      TableName: TABLE,
-      Key: { PK: `ORDER#${orderId}`, SK: 'METADATA' },
-    })
-  );
-  return Item ? (Item as Order) : null;
+  try {
+    const { Item } = await db.send(
+      new GetCommand({
+        TableName: TABLE,
+        Key: { PK: `ORDER#${orderId}`, SK: 'METADATA' },
+      })
+    );
+    return Item ? (Item as Order) : null;
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memGetOrder(orderId);
+    throw err;
+  }
 }
 
 export async function updateOrderStatus(
@@ -371,15 +425,20 @@ export async function updateOrderStatus(
     values[':tid'] = stripeTransferId;
   }
 
-  await db.send(
-    new UpdateCommand({
-      TableName: TABLE,
-      Key: { PK: `ORDER#${orderId}`, SK: 'METADATA' },
-      UpdateExpression: `SET ${updates.join(', ')}`,
-      ExpressionAttributeNames: names,
-      ExpressionAttributeValues: values,
-    })
-  );
+  try {
+    await db.send(
+      new UpdateCommand({
+        TableName: TABLE,
+        Key: { PK: `ORDER#${orderId}`, SK: 'METADATA' },
+        UpdateExpression: `SET ${updates.join(', ')}`,
+        ExpressionAttributeNames: names,
+        ExpressionAttributeValues: values,
+      })
+    );
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memUpdateOrderStatus(orderId, status, stripeTransferId);
+    throw err;
+  }
 }
 
 // ─── Users ────────────────────────────────────────────────────────────────────
@@ -475,39 +534,44 @@ export async function confirmTicketTransaction(
   ticket: Ticket,
   order: Order
 ): Promise<void> {
-  await db.send(
-    new TransactWriteCommand({
-      TransactItems: [
-        {
-          Update: {
-            TableName: TABLE,
-            Key: {
-              PK: `EVENT#${ticket.eventId}`,
-              SK: `TICKET#${ticket.ticketId}`,
-            },
-            UpdateExpression: 'SET #s = :s, paidAt = :pa',
-            ConditionExpression: '#s = :reserved',
-            ExpressionAttributeNames: { '#s': 'status' },
-            ExpressionAttributeValues: {
-              ':s': 'paid',
-              ':pa': new Date().toISOString(),
-              ':reserved': 'reserved',
-            },
-          },
-        },
-        {
-          Put: {
-            TableName: TABLE,
-            Item: {
-              PK: `ORDER#${order.orderId}`,
-              SK: 'METADATA',
-              ...order,
+  try {
+    await db.send(
+      new TransactWriteCommand({
+        TransactItems: [
+          {
+            Update: {
+              TableName: TABLE,
+              Key: {
+                PK: `EVENT#${ticket.eventId}`,
+                SK: `TICKET#${ticket.ticketId}`,
+              },
+              UpdateExpression: 'SET #s = :s, paidAt = :pa',
+              ConditionExpression: '#s = :reserved',
+              ExpressionAttributeNames: { '#s': 'status' },
+              ExpressionAttributeValues: {
+                ':s': 'paid',
+                ':pa': new Date().toISOString(),
+                ':reserved': 'reserved',
+              },
             },
           },
-        },
-      ],
-    })
-  );
+          {
+            Put: {
+              TableName: TABLE,
+              Item: {
+                PK: `ORDER#${order.orderId}`,
+                SK: 'METADATA',
+                ...order,
+              },
+            },
+          },
+        ],
+      })
+    );
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memConfirmTicketTransaction(ticket, order);
+    throw err;
+  }
 }
 
 // ─── Public Event Listing ─────────────────────────────────────────────────────
@@ -550,45 +614,60 @@ export interface Reservation {
 }
 
 export async function putReservation(reservation: Reservation): Promise<void> {
-  await db.send(
-    new PutCommand({
-      TableName: TABLE,
-      Item: {
-        PK: `RESERVATION#${reservation.reservationId}`,
-        SK: 'METADATA',
-        ttl: reservation.expiresAt, // DynamoDB TTL attribute
-        ...reservation,
-      },
-    })
-  );
+  try {
+    await db.send(
+      new PutCommand({
+        TableName: TABLE,
+        Item: {
+          PK: `RESERVATION#${reservation.reservationId}`,
+          SK: 'METADATA',
+          ttl: reservation.expiresAt, // DynamoDB TTL attribute
+          ...reservation,
+        },
+      })
+    );
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memPutReservation(reservation);
+    throw err;
+  }
 }
 
 export async function getReservation(reservationId: string): Promise<Reservation | null> {
-  const { Item } = await db.send(
-    new GetCommand({
-      TableName: TABLE,
-      Key: { PK: `RESERVATION#${reservationId}`, SK: 'METADATA' },
-    })
-  );
-  if (!Item) return null;
-  // Check if expired
-  if (Item.expiresAt && Item.expiresAt < Math.floor(Date.now() / 1000)) return null;
-  return Item as Reservation;
+  try {
+    const { Item } = await db.send(
+      new GetCommand({
+        TableName: TABLE,
+        Key: { PK: `RESERVATION#${reservationId}`, SK: 'METADATA' },
+      })
+    );
+    if (!Item) return null;
+    // Check if expired
+    if (Item.expiresAt && Item.expiresAt < Math.floor(Date.now() / 1000)) return null;
+    return Item as Reservation;
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memGetReservation(reservationId);
+    throw err;
+  }
 }
 
 export async function updateReservationStatus(
   reservationId: string,
   status: Reservation['status']
 ): Promise<void> {
-  await db.send(
-    new UpdateCommand({
-      TableName: TABLE,
-      Key: { PK: `RESERVATION#${reservationId}`, SK: 'METADATA' },
-      UpdateExpression: 'SET #s = :s',
-      ExpressionAttributeNames: { '#s': 'status' },
-      ExpressionAttributeValues: { ':s': status },
-    })
-  );
+  try {
+    await db.send(
+      new UpdateCommand({
+        TableName: TABLE,
+        Key: { PK: `RESERVATION#${reservationId}`, SK: 'METADATA' },
+        UpdateExpression: 'SET #s = :s',
+        ExpressionAttributeNames: { '#s': 'status' },
+        ExpressionAttributeValues: { ':s': status },
+      })
+    );
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memUpdateReservationStatus(reservationId, status);
+    throw err;
+  }
 }
 
 // ─── Activity Feed ────────────────────────────────────────────────────────────
@@ -647,13 +726,18 @@ export async function atomicIncrementAvailability(
   tierId: string,
   quantity: number
 ): Promise<void> {
-  await db.send(
-    new UpdateCommand({
-      TableName: TABLE,
-      Key: { PK: `EVENT#${eventId}`, SK: `TIER#${tierId}` },
-      UpdateExpression:
-        'SET availableCount = availableCount + :q, soldCount = soldCount - :q',
-      ExpressionAttributeValues: { ':q': quantity },
-    })
-  );
+  try {
+    await db.send(
+      new UpdateCommand({
+        TableName: TABLE,
+        Key: { PK: `EVENT#${eventId}`, SK: `TIER#${tierId}` },
+        UpdateExpression:
+          'SET availableCount = availableCount + :q, soldCount = soldCount - :q',
+        ExpressionAttributeValues: { ':q': quantity },
+      })
+    );
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memAtomicIncrementAvailability(eventId, tierId, quantity);
+    throw err;
+  }
 }

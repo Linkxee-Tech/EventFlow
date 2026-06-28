@@ -115,6 +115,10 @@ export function memPutTier(eventId: string, tier: TicketTier): void {
   getStore().tiers.set(`${eventId}#${tier.tierId}`, { ...tier, eventId });
 }
 
+export function memDeleteTier(eventId: string, tierId: string): void {
+  getStore().tiers.delete(`${eventId}#${tierId}`);
+}
+
 export function memGetTier(eventId: string, tierId: string): TicketTier | null {
   const t = getStore().tiers.get(`${eventId}#${tierId}`);
   if (!t) return null;

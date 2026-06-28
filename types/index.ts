@@ -152,6 +152,7 @@ export interface FeeBreakdown {
 
 export function calculateFee(pricePerTicket: number, quantity: number): FeeBreakdown {
   const subtotal = pricePerTicket * quantity;
-  const platformFee = Math.round(subtotal * 0.025) + 30;
+  // Waive the $0.30 fixed fee if the ticket is completely free
+  const platformFee = subtotal === 0 ? 0 : Math.round(subtotal * 0.025) + 30;
   return { subtotal, platformFee, total: subtotal + platformFee };
 }

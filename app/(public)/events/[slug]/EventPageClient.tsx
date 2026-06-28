@@ -111,11 +111,17 @@ export function EventPageClient({ event }: Props) {
         </div>
       </div>
 
-      {/* Venue map placeholder */}
+      {/* Venue map */}
       <div className="max-w-2xl mx-auto px-4 mb-6">
-        <div className="h-28 bg-[#1A1A2E] border border-white/8 rounded-xl flex items-center justify-center gap-2 text-slate-500 text-sm">
-          <MapPin className="h-4 w-4" />
-          {event.venue}
+        <div className="h-48 bg-[#1A1A2E] border border-white/8 rounded-xl overflow-hidden relative">
+          <iframe 
+            width="100%" 
+            height="100%" 
+            style={{ border: 0 }}
+            loading="lazy"
+            allowFullScreen
+            src={`https://maps.google.com/maps?q=${encodeURIComponent(event.venue)}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
+          ></iframe>
         </div>
       </div>
 

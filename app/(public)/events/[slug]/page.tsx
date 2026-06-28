@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getEventBySlug } from '@/lib/db';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { formatEventDate } from '@/lib/utils';
 import { EventPageClient } from './EventPageClient';
 import type { Metadata } from 'next';
@@ -29,7 +31,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function EventPage({ params }: Props) {
   const resolvedParams = await params;
   const event = await getEventBySlug(resolvedParams.slug);
-  if (!event || event.status !== 'published') notFound();
+  const session = await getServerSession(authOptions);
+  const userId = (session?.user as any)?.id;
+
+  if (!event) notFound();
+  if (event.status !== 'published' && event.organizerId !== userId) notFound();
 
   return <EventPageClient event={event} />;
 }

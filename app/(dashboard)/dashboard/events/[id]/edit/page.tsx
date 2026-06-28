@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, PlusCircle, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface Tier {
@@ -13,6 +13,7 @@ interface Tier {
   price: string;
   totalCapacity: string;
   maxPerOrder: string;
+  soldCount?: number;
 }
 
 export default function EditEventPage() {
@@ -42,6 +43,7 @@ export default function EditEventPage() {
             price: (t.price / 100).toFixed(2),
             totalCapacity: String(t.totalCapacity),
             maxPerOrder: String(t.maxPerOrder),
+            soldCount: t.soldCount,
           }))
         );
       })
@@ -59,6 +61,14 @@ export default function EditEventPage() {
         body: JSON.stringify({
           ...details,
           date: new Date(details.date).toISOString(),
+          tiers: tiers.map(t => ({
+            tierId: t.tierId,
+            name: t.name,
+            description: t.description || undefined,
+            price: Math.round(parseFloat(t.price || '0') * 100),
+            totalCapacity: parseInt(t.totalCapacity || '1', 10),
+            maxPerOrder: parseInt(t.maxPerOrder || '4', 10),
+          })),
         }),
       });
       if (!res.ok) {
@@ -131,24 +141,48 @@ export default function EditEventPage() {
           </div>
         </div>
 
-        {/* Tiers — read-only display (tiers need separate API to update) */}
-        {tiers.length > 0 && (
-          <div className="bg-[#1A1A2E] border border-white/8 rounded-2xl p-6">
-            <h2 className="text-sm font-medium text-slate-300 mb-3">Ticket tiers</h2>
-            <p className="text-xs text-slate-500 mb-3">
-              Tier capacities cannot be edited after creation to prevent inventory issues.
-              Contact support to adjust capacities on live events.
-            </p>
-            <div className="space-y-2">
-              {tiers.map((t, i) => (
-                <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0 text-sm">
-                  <span className="font-medium">{t.name}</span>
-                  <span className="text-slate-400">${t.price} · {t.totalCapacity} capacity</span>
+        {/* Tiers — Editable */}
+        <div className="space-y-4">
+          <h2 className="text-sm font-medium text-slate-300">Ticket tiers</h2>
+          {tiers.map((tier, i) => (
+            <div key={i} className="bg-[#1A1A2E] border border-white/8 rounded-2xl p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-indigo-400">Tier {i + 1} {tier.soldCount ? `(${tier.soldCount} sold)` : ''}</span>
+                {(!tier.soldCount || tier.soldCount === 0) && (
+                  <button type="button" onClick={() => setTiers(t => t.filter((_, idx) => idx !== i))} className="text-slate-400 hover:text-red-400 transition-colors">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5 col-span-2">
+                  <label className="block text-xs text-slate-400">Tier name *</label>
+                  <input value={tier.name} onChange={(e) => setTiers(t => t.map((tr, idx) => idx === i ? { ...tr, name: e.target.value } : tr))}
+                    className="w-full bg-[#0F0F1A] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors" required />
                 </div>
-              ))}
+                <div className="space-y-1.5 col-span-2">
+                  <label className="block text-xs text-slate-400">Description</label>
+                  <input value={tier.description} onChange={(e) => setTiers(t => t.map((tr, idx) => idx === i ? { ...tr, description: e.target.value } : tr))}
+                    className="w-full bg-[#0F0F1A] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs text-slate-400">Price ($) *</label>
+                  <input type="number" min="0" step="0.01" value={tier.price} onChange={(e) => setTiers(t => t.map((tr, idx) => idx === i ? { ...tr, price: e.target.value } : tr))}
+                    className="w-full bg-[#0F0F1A] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors" required />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs text-slate-400">Capacity *</label>
+                  <input type="number" min={tier.soldCount ? tier.soldCount : 1} value={tier.totalCapacity} onChange={(e) => setTiers(t => t.map((tr, idx) => idx === i ? { ...tr, totalCapacity: e.target.value } : tr))}
+                    className="w-full bg-[#0F0F1A] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors" required />
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          ))}
+          <button type="button" onClick={() => setTiers(t => [...t, { name: '', description: '', price: '', totalCapacity: '50', maxPerOrder: '4' }])}
+            className="w-full flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 py-3 rounded-xl text-sm transition-colors">
+            <PlusCircle className="h-4 w-4" /> Add Tier
+          </button>
+        </div>
 
         <div className="flex gap-3">
           <Link href={`/dashboard/events/${params.id}`}
