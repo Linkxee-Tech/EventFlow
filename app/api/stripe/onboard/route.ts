@@ -16,7 +16,8 @@ export async function GET(_req: NextRequest) {
     const { accountId, onboardingUrl } = await createConnectAccountLink(
       auth.userId,
       auth.email,
-      ENV.APP_URL
+      ENV.APP_URL,
+      profile.stripeAccountId
     );
 
     // Store accountId immediately (onboarding may not complete right away)
@@ -26,7 +27,7 @@ export async function GET(_req: NextRequest) {
 
     return apiSuccess({ onboardingUrl, accountId });
   } catch (err: any) {
-    console.error('[stripe/onboard]', err.message);
+    console.error('[stripe/onboard]', err);
     return apiError('Failed to create Stripe onboarding link. Try again.', 500);
   }
 }

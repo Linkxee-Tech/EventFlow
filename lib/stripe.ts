@@ -53,33 +53,38 @@ export async function createPaymentIntent({
 export async function createConnectAccountLink(
   organizerId: string,
   email: string,
-  returnUrl: string
+  returnUrl: string,
+  existingAccountId?: string
 ): Promise<{ accountId: string; onboardingUrl: string }> {
   // Mock mode for local development without real Stripe keys
   if (!process.env.STRIPE_SECRET_KEY?.startsWith('sk_')) {
-    const accountId = `acct_mock_${organizerId.slice(0, 8)}`;
+    const accountId = existingAccountId || `acct_mock_${organizerId.slice(0, 8)}`;
     return { accountId, onboardingUrl: `${returnUrl}/dashboard/settings?stripe=success` };
   }
 
-  // Create Express account if first time
-  const account = await stripe.accounts.create({
-    type: 'express',
-    email,
-    metadata: { organizerId },
-    capabilities: {
-      transfers: { requested: true },
-      card_payments: { requested: true },
-    },
-  });
+  let accountId = existingAccountId;
+
+  if (!accountId) {
+    // Create Express account if first time
+    const account = await stripe.accounts.create({
+      type: 'express',
+      email,
+      metadata: { organizerId },
+      capabilities: {
+        transfers: { requested: true },
+      },
+    });
+    accountId = account.id;
+  }
 
   const link = await stripe.accountLinks.create({
-    account: account.id,
+    account: accountId,
     refresh_url: `${returnUrl}/dashboard/settings?stripe=refresh`,
     return_url: `${returnUrl}/dashboard/settings?stripe=success`,
     type: 'account_onboarding',
   });
 
-  return { accountId: account.id, onboardingUrl: link.url };
+  return { accountId, onboardingUrl: link.url };
 }
 
 export async function getConnectAccountBalance(
