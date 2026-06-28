@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server';
-import { getUser, putUser } from '@/lib/db';
+import { getUser, putUser, updateUserStripeAccount } from '@/lib/db';
 import { apiSuccess, apiError, requireAuth } from '@/lib/utils';
 import { sanitizeText } from '@/lib/sanitize';
 import { z } from 'zod';
+import { stripe } from '@/lib/stripe';
 
 // GET /api/user/me
 export async function GET() {
@@ -11,6 +12,26 @@ export async function GET() {
 
   const profile = await getUser(auth.userId);
   if (!profile) return apiError('User profile not found', 404);
+
+  // Auto-verify Stripe Connect status if pending
+  if (profile.stripeAccountId && !profile.stripeOnboardingComplete) {
+    let isComplete = false;
+    if (!process.env.STRIPE_SECRET_KEY?.startsWith('sk_')) {
+      isComplete = true; // mock mode
+    } else {
+      try {
+        const account = await stripe.accounts.retrieve(profile.stripeAccountId);
+        isComplete = account.details_submitted;
+      } catch (err) {
+        console.error('[stripe verify]', err);
+      }
+    }
+
+    if (isComplete) {
+      profile.stripeOnboardingComplete = true;
+      await updateUserStripeAccount(auth.userId, profile.stripeAccountId, true);
+    }
+  }
 
   // Never expose sensitive internal fields
   const { stripeAccountId: _, ...safe } = profile as any;
