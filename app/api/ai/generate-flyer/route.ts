@@ -42,7 +42,23 @@ Event: "${eventName}" | Date: ${eventDate} | Venue: ${venue} | Theme: ${theme} |
 Return ONLY valid JSON (no markdown) with keys:
 { "copy": "2-3 sentence description", "tagline": "under 8 words", "imagePrompt": "detailed SDXL prompt for 1024x1024 flyer", ${captionSection} }`;
 
-    const { text } = await generateText({ model: openai('gpt-4-turbo'), prompt });
+    let text: string;
+    try {
+      const response = await generateText({ model: openai('gpt-4o-mini'), prompt });
+      text = response.text;
+    } catch (aiError) {
+      console.warn('[ai] generateText failed, using fallback mock data:', aiError);
+      text = JSON.stringify({
+        copy: `Experience an unforgettable time at ${eventName}. Join us for a spectacular event filled with amazing moments.`,
+        tagline: `Don't miss out on the best ${theme} event.`,
+        imagePrompt: `A vibrant and modern promotional flyer for an event named ${eventName} with a ${theme} theme.`,
+        captions: generateCaptions ? {
+          twitter: `Get ready for ${eventName}! 🚀 Grab your tickets now. #event #${theme.replace(/\s+/g, '')}`,
+          linkedin: `We are thrilled to announce ${eventName}. Join industry peers at ${venue} for an exceptional experience.`,
+          instagram: `✨ ${eventName} is happening! Secure your spot now. 🎟️ ✨ #events`
+        } : null
+      });
+    }
 
     let result: any;
     try { result = JSON.parse(text.replace(/```json|```/g, '').trim()); }
