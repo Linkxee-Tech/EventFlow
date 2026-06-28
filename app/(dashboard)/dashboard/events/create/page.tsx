@@ -111,6 +111,10 @@ export default function CreateEventPage() {
   }
 
   async function publish(asDraft = false) {
+    if (!details.name) { toast.error('Event name is required'); setStep(1); return; }
+    if (!details.date) { toast.error('Event date is required'); setStep(1); return; }
+    if (!details.venue) { toast.error('Event venue is required'); setStep(1); return; }
+    
     setLoading(true);
     try {
       const res = await fetch('/api/events', {
@@ -118,7 +122,7 @@ export default function CreateEventPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...details,
-          date: new Date(details.date).toISOString(),
+          date: details.date ? new Date(details.date).toISOString() : new Date().toISOString(),
           imageUrl: flyerImageUrl || undefined,
           tiers: tiers.map((t) => ({
             name: t.name,
