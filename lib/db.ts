@@ -445,18 +445,26 @@ export async function updateUserStripeAccount(
   stripeAccountId: string,
   onboardingComplete: boolean
 ): Promise<void> {
-  await db.send(
-    new UpdateCommand({
-      TableName: TABLE,
-      Key: { PK: `USER#${userId}`, SK: 'PROFILE' },
-      UpdateExpression:
-        'SET stripeAccountId = :sa, stripeOnboardingComplete = :oc',
-      ExpressionAttributeValues: {
-        ':sa': stripeAccountId,
-        ':oc': onboardingComplete,
-      },
-    })
-  );
+  try {
+    await db.send(
+      new UpdateCommand({
+        TableName: TABLE,
+        Key: { PK: `USER#${userId}`, SK: 'PROFILE' },
+        UpdateExpression:
+          'SET stripeAccountId = :sa, stripeOnboardingComplete = :oc',
+        ExpressionAttributeValues: {
+          ':sa': stripeAccountId,
+          ':oc': onboardingComplete,
+        },
+      })
+    );
+  } catch (err) {
+    if (isConnectionError(err)) {
+      mem.memUpdateUserStripeAccount(userId, stripeAccountId, onboardingComplete);
+      return;
+    }
+    throw err;
+  }
 }
 
 // ─── Transactional Ticket Confirmation ───────────────────────────────────────
