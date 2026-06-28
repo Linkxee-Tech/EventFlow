@@ -110,6 +110,10 @@ export function QRScannerWithOffline({ eventId, eventName, tiers, preloadedHashe
 
   const startCamera = useCallback(async () => {
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast.error('Camera not supported. Are you on HTTP instead of HTTPS/localhost?');
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode, width: { ideal: 1280 } },
       });
