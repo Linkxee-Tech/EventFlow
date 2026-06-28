@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     const sanitized = sanitizeEventInput({
       name: parsed.data.name,
-      description: parsed.data.description,
+      description: parsed.data.description ?? '',
       venue: parsed.data.venue,
     });
     const input: CreateEventInput = { ...parsed.data, ...sanitized } as CreateEventInput;
