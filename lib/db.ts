@@ -61,67 +61,85 @@ function isConnectionError(err: unknown): boolean {
 // ─── Events ───────────────────────────────────────────────────────────────────
 
 export async function getEvent(eventId: string): Promise<Event | null> {
-  const { Item } = await db.send(
-    new GetCommand({ TableName: TABLE, Key: { PK: `EVENT#${eventId}`, SK: 'METADATA' } })
-  );
-  if (!Item) return null;
+  try {
+    const { Item } = await db.send(
+      new GetCommand({ TableName: TABLE, Key: { PK: `EVENT#${eventId}`, SK: 'METADATA' } })
+    );
+    if (!Item) return null;
 
-  // Fetch tiers
-  const { Items: tierItems = [] } = await db.send(
-    new QueryCommand({
-      TableName: TABLE,
-      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-      ExpressionAttributeValues: { ':pk': `EVENT#${eventId}`, ':prefix': 'TIER#' },
-    })
-  );
+    // Fetch tiers
+    const { Items: tierItems = [] } = await db.send(
+      new QueryCommand({
+        TableName: TABLE,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+        ExpressionAttributeValues: { ':pk': `EVENT#${eventId}`, ':prefix': 'TIER#' },
+      })
+    );
 
-  return {
-    id: Item.id,
-    slug: Item.slug,
-    organizerId: Item.organizerId,
-    name: Item.name,
-    description: Item.description,
-    date: Item.date,
-    endDate: Item.endDate,
-    venue: Item.venue,
-    venueLat: Item.venueLat,
-    venueLng: Item.venueLng,
-    status: Item.status,
-    imageUrl: Item.imageUrl,
-    aiFlyerPrompt: Item.aiFlyerPrompt,
-    createdAt: Item.createdAt,
-    updatedAt: Item.updatedAt,
-    tiers: tierItems.map(tierFromDynamo),
-  };
+    return {
+      id: Item.id,
+      slug: Item.slug,
+      organizerId: Item.organizerId,
+      name: Item.name,
+      description: Item.description,
+      date: Item.date,
+      endDate: Item.endDate,
+      venue: Item.venue,
+      venueLat: Item.venueLat,
+      venueLng: Item.venueLng,
+      status: Item.status,
+      imageUrl: Item.imageUrl,
+      aiFlyerPrompt: Item.aiFlyerPrompt,
+      createdAt: Item.createdAt,
+      updatedAt: Item.updatedAt,
+      tiers: tierItems.map(tierFromDynamo),
+    };
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memGetEvent(eventId);
+    throw err;
+  }
 }
 
 export async function getEventBySlug(slug: string): Promise<Event | null> {
-  // GSI1: SK = METADATA, filter by slug — or keep a slug→id map item
-  const { Items = [] } = await db.send(
-    new QueryCommand({
-      TableName: TABLE,
-      IndexName: 'GSI1',
-      KeyConditionExpression: 'SK = :sk',
-      FilterExpression: 'slug = :slug',
-      ExpressionAttributeValues: { ':sk': 'METADATA', ':slug': slug },
-    })
-  );
-  if (!Items.length) return null;
-  return getEvent(Items[0].id);
+  try {
+    const { Items = [] } = await db.send(
+      new QueryCommand({
+        TableName: TABLE,
+        IndexName: 'GSI1',
+        KeyConditionExpression: 'SK = :sk',
+        FilterExpression: 'slug = :slug',
+        ExpressionAttributeValues: { ':sk': 'METADATA', ':slug': slug },
+      })
+    );
+    if (!Items.length) return null;
+    return getEvent(Items[0].id);
+  } catch (err) {
+    // memGetEvent doesn't support by slug natively but we can mock it or just return null
+    if (isConnectionError(err)) {
+      const allEvents = mem.memListPublishedEvents(100);
+      return allEvents.find(e => e.slug === slug) ?? null;
+    }
+    throw err;
+  }
 }
 
 export async function listEventsByOrganizer(organizerId: string): Promise<Event[]> {
-  const { Items = [] } = await db.send(
-    new QueryCommand({
-      TableName: TABLE,
-      IndexName: 'GSI1',
-      KeyConditionExpression: 'SK = :sk',
-      FilterExpression: 'organizerId = :oid',
-      ExpressionAttributeValues: { ':sk': 'METADATA', ':oid': organizerId },
-    })
-  );
-  const events = await Promise.all(Items.map((i) => getEvent(i.id)));
-  return events.filter(Boolean) as Event[];
+  try {
+    const { Items = [] } = await db.send(
+      new QueryCommand({
+        TableName: TABLE,
+        IndexName: 'GSI1',
+        KeyConditionExpression: 'SK = :sk',
+        FilterExpression: 'organizerId = :oid',
+        ExpressionAttributeValues: { ':sk': 'METADATA', ':oid': organizerId },
+      })
+    );
+    const events = await Promise.all(Items.map((i) => getEvent(i.id)));
+    return events.filter(Boolean) as Event[];
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memListEventsByOrganizer(organizerId);
+    throw err;
+  }
 }
 
 export async function putEvent(event: Omit<Event, 'tiers'>): Promise<void> {
@@ -468,19 +486,24 @@ export async function confirmTicketTransaction(
 // ─── Public Event Listing ─────────────────────────────────────────────────────
 
 export async function listPublishedEvents(limit = 12): Promise<Event[]> {
-  const { Items = [] } = await db.send(
-    new QueryCommand({
-      TableName: TABLE,
-      IndexName: 'GSI1',
-      KeyConditionExpression: 'SK = :sk',
-      FilterExpression: '#s = :published',
-      ExpressionAttributeNames: { '#s': 'status' },
-      ExpressionAttributeValues: { ':sk': 'METADATA', ':published': 'published' },
-      Limit: limit,
-    })
-  );
-  const events = await Promise.all(Items.map((i) => getEvent(i.id)));
-  return events.filter(Boolean) as Event[];
+  try {
+    const { Items = [] } = await db.send(
+      new QueryCommand({
+        TableName: TABLE,
+        IndexName: 'GSI1',
+        KeyConditionExpression: 'SK = :sk',
+        FilterExpression: '#s = :published',
+        ExpressionAttributeNames: { '#s': 'status' },
+        ExpressionAttributeValues: { ':sk': 'METADATA', ':published': 'published' },
+        Limit: limit,
+      })
+    );
+    const events = await Promise.all(Items.map((i) => getEvent(i.id)));
+    return events.filter(Boolean) as Event[];
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memListPublishedEvents(limit);
+    throw err;
+  }
 }
 
 // ─── Reservation TTL Items ────────────────────────────────────────────────────
@@ -547,18 +570,23 @@ export async function listRecentOrdersByOrganizer(
   organizerId: string,
   limit = 10
 ): Promise<Order[]> {
-  const { Items = [] } = await db.send(
-    new QueryCommand({
-      TableName: TABLE,
-      IndexName: 'GSI1',
-      KeyConditionExpression: 'SK = :sk',
-      FilterExpression: 'organizerId = :oid',
-      ExpressionAttributeValues: { ':sk': 'METADATA', ':oid': organizerId },
-      Limit: limit,
-      ScanIndexForward: false,
-    })
-  );
-  return Items as Order[];
+  try {
+    const { Items = [] } = await db.send(
+      new QueryCommand({
+        TableName: TABLE,
+        IndexName: 'GSI1',
+        KeyConditionExpression: 'SK = :sk',
+        FilterExpression: 'organizerId = :oid',
+        ExpressionAttributeValues: { ':sk': 'METADATA', ':oid': organizerId },
+        Limit: limit,
+        ScanIndexForward: false,
+      })
+    );
+    return Items as Order[];
+  } catch (err) {
+    if (isConnectionError(err)) return mem.memListRecentOrdersByOrganizer(organizerId, limit);
+    throw err;
+  }
 }
 
 // ─── Atomic Increment (rollback) ─────────────────────────────────────────────
