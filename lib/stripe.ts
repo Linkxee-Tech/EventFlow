@@ -28,6 +28,14 @@ export async function createPaymentIntent({
   organizerStripeAccountId: string;
   metadata: Record<string, string>;
 }): Promise<Stripe.PaymentIntent> {
+  if (!process.env.STRIPE_SECRET_KEY?.startsWith('sk_')) {
+    return {
+      id: `pi_mock_${Date.now()}`,
+      client_secret: 'pi_mock_secret',
+      status: 'requires_payment_method',
+    } as any;
+  }
+
   return stripe.paymentIntents.create({
     amount,
     currency: 'usd',
@@ -47,6 +55,12 @@ export async function createConnectAccountLink(
   email: string,
   returnUrl: string
 ): Promise<{ accountId: string; onboardingUrl: string }> {
+  // Mock mode for local development without real Stripe keys
+  if (!process.env.STRIPE_SECRET_KEY?.startsWith('sk_')) {
+    const accountId = `acct_mock_${organizerId.slice(0, 8)}`;
+    return { accountId, onboardingUrl: `${returnUrl}/dashboard/settings?stripe=success` };
+  }
+
   // Create Express account if first time
   const account = await stripe.accounts.create({
     type: 'express',
@@ -71,6 +85,10 @@ export async function createConnectAccountLink(
 export async function getConnectAccountBalance(
   stripeAccountId: string
 ): Promise<{ available: number; pending: number }> {
+  if (!process.env.STRIPE_SECRET_KEY?.startsWith('sk_')) {
+    return { available: 5000, pending: 15000 };
+  }
+
   const balance = await stripe.balance.retrieve({
     stripeAccount: stripeAccountId,
   });
@@ -86,6 +104,10 @@ export async function createPayout(
   stripeAccountId: string,
   amount: number
 ): Promise<Stripe.Payout> {
+  if (!process.env.STRIPE_SECRET_KEY?.startsWith('sk_')) {
+    return { id: `po_mock_${Date.now()}`, amount, status: 'paid' } as any;
+  }
+
   return stripe.payouts.create(
     { amount, currency: 'usd', method: 'instant' },
     { stripeAccount: stripeAccountId }
