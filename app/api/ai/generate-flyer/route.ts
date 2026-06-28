@@ -37,14 +37,14 @@ export async function POST(req: NextRequest) {
       ? `"captions": { "twitter": "tweet under 280 chars with hashtags", "linkedin": "professional 2-sentence post", "instagram": "caption under 150 chars with hashtags" }`
       : '"captions": null';
 
-    const prompt = `You are a creative event marketing copywriter.
+    const prompt = `You are an expert event marketing copywriter and AI prompt engineer.
 Event: "${eventName}" | Date: ${eventDate} | Venue: ${venue} | Theme: ${theme} | Style: ${style}
 Return ONLY valid JSON (no markdown) with keys:
-{ "copy": "2-3 sentence description", "tagline": "under 8 words", "imagePrompt": "detailed SDXL prompt for 1024x1024 flyer", ${captionSection} }`;
+{ "copy": "2-3 sentence description", "tagline": "under 8 words", "imagePrompt": "EXTREMELY detailed, highly aesthetic, attention-grabbing prompt for an AI image generator. Include specific lighting, atmosphere, style, camera angles, and stunning visuals to make the flyer pop. NO TEXT or words in the image itself.", ${captionSection} }`;
 
     let text: string;
     try {
-      const response = await generateText({ model: openai('gpt-4o-mini'), prompt });
+      const response = await generateText({ model: openai('gpt-4o-mini'), prompt, maxRetries: 0 });
       text = response.text;
     } catch (aiError) {
       console.warn('[ai] generateText failed, using fallback mock data:', aiError);
@@ -64,30 +64,34 @@ Return ONLY valid JSON (no markdown) with keys:
     try { result = JSON.parse(text.replace(/```json|```/g, '').trim()); }
     catch { return apiError('AI response invalid. Please try again.', 500); }
 
-    // Optional Replicate image generation
-    if (generateImage && result.imagePrompt && process.env.REPLICATE_API_TOKEN) {
+    // Optional Google Imagen 3 image generation
+    if (generateImage && result.imagePrompt && process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
       try {
-        const replicateRes = await fetch('https://api.replicate.com/v1/predictions', {
-          method: 'POST',
-          headers: { Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            version: 'ac732df83cea7fff18b8472768c88ad041fa750ff7682a21affe81863cbe77e4',
-            input: { prompt: result.imagePrompt, width: 1024, height: 1024, num_outputs: 1, num_inference_steps: 25 },
-          }),
-        });
-        if (replicateRes.ok) {
-          const prediction = await replicateRes.json();
-          for (let i = 0; i < 20; i++) {
-            await new Promise((r) => setTimeout(r, 2000));
-            const poll = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
-              headers: { Authorization: `Token ${process.env.REPLICATE_API_TOKEN}` },
-            });
-            const pollData = await poll.json();
-            if (pollData.status === 'succeeded') { result.imageUrl = pollData.output?.[0] ?? null; break; }
-            if (pollData.status === 'failed') break;
+        const googleRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${process.env.GOOGLE_GENERATIVE_AI_API_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              instances: [{ prompt: result.imagePrompt }],
+              parameters: { sampleCount: 1, aspectRatio: "1:1", outputOptions: { mimeType: 'image/jpeg' } },
+            }),
           }
+        );
+        if (googleRes.ok) {
+          const data = await googleRes.json();
+          const base64 = data.predictions?.[0]?.bytesBase64Encoded;
+          if (base64) {
+            result.imageUrl = `data:image/jpeg;base64,${base64}`;
+          }
+        } else {
+          console.warn('[ai] Imagen API error:', await googleRes.text());
+          result.imageUrl = null;
         }
-      } catch (e) { console.warn('[ai] Replicate failed:', e); result.imageUrl = null; }
+      } catch (e) { 
+        console.warn('[ai] Imagen failed:', e); 
+        result.imageUrl = null; 
+      }
     }
 
     return apiSuccess(result);

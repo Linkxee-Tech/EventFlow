@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { PlusCircle, Trash2, Wand2, CheckCircle } from 'lucide-react';
+import { PlusCircle, Trash2, Wand2, CheckCircle, Download } from 'lucide-react';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -26,6 +26,7 @@ export default function CreateEventPage() {
   const [generatingFlyer, setGeneratingFlyer] = useState(false);
   const [flyerCopy, setFlyerCopy] = useState('');
   const [flyerTagline, setFlyerTagline] = useState('');
+  const [flyerImageUrl, setFlyerImageUrl] = useState('');
   const [flyerStyle, setFlyerStyle] = useState('vibrant retro');
   const [captions, setCaptions] = useState<{ twitter?: string; linkedin?: string; instagram?: string } | null>(null);
   const [generatingCaptions, setGeneratingCaptions] = useState(false);
@@ -69,11 +70,13 @@ export default function CreateEventPage() {
           venue: details.venue,
           style: flyerStyle,
           theme: flyerStyle,
+          generateImage: true,
         }),
       });
       const json = await res.json();
       setFlyerCopy(json.data?.copy ?? '');
       setFlyerTagline(json.data?.tagline ?? '');
+      setFlyerImageUrl(json.data?.imageUrl ?? '');
       toast.success('Flyer generated!');
     } catch {
       toast.error('Generation failed. Try again.');
@@ -116,6 +119,7 @@ export default function CreateEventPage() {
         body: JSON.stringify({
           ...details,
           date: new Date(details.date).toISOString(),
+          imageUrl: flyerImageUrl || undefined,
           tiers: tiers.map((t) => ({
             name: t.name,
             description: t.description || undefined,
@@ -256,21 +260,43 @@ export default function CreateEventPage() {
       {/* Step 3: AI Flyer */}
       {step === 3 && (
         <div className="space-y-4">
-          <div className="bg-gradient-to-br from-indigo-950 to-purple-950 border border-primary/20 rounded-xl p-8 text-center min-h-48 flex flex-col items-center justify-center gap-3">
-            {flyerTagline ? (
-              <>
-                <span className="text-xs bg-amber-500/90 text-amber-950 font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                  ✦ Event
-                </span>
-                <h2 className="text-2xl font-bold text-white">{details.name}</h2>
-                <p className="text-sm text-indigo-200 italic">"{flyerTagline}"</p>
-                {flyerCopy && <p className="text-xs text-indigo-300 max-w-xs">{flyerCopy}</p>}
-              </>
-            ) : (
-              <p className="text-muted-foreground text-sm">
-                Generate an AI flyer below ↓
-              </p>
+          <div className="bg-gradient-to-br from-indigo-950 to-purple-950 border border-primary/20 rounded-xl p-8 text-center min-h-48 flex flex-col items-center justify-center gap-4 relative overflow-hidden">
+            {flyerImageUrl && (
+              <div className="absolute inset-0 z-0">
+                <img src={flyerImageUrl} alt="Generated Flyer" className="w-full h-full object-cover opacity-50" />
+              </div>
             )}
+            <div className="relative z-10 flex flex-col items-center gap-3">
+              {flyerTagline ? (
+                <>
+                  <span className="text-xs bg-amber-500/90 text-amber-950 font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                    ✦ Event
+                  </span>
+                  <h2 className="text-2xl font-bold text-white drop-shadow-md">{details.name}</h2>
+                  <p className="text-sm text-indigo-100 italic drop-shadow-md">"{flyerTagline}"</p>
+                  {flyerCopy && <p className="text-xs text-indigo-200 max-w-xs drop-shadow-md">{flyerCopy}</p>}
+                  {flyerImageUrl && (
+                    <Button 
+                      variant="secondary" 
+                      size="sm" 
+                      className="mt-4 opacity-90 hover:opacity-100"
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = flyerImageUrl;
+                        link.download = `${details.name.replace(/\s+/g, '_')}_flyer.jpg`;
+                        link.click();
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" /> Download Image
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  Generate an AI flyer below ↓
+                </p>
+              )}
+            </div>
           </div>
           <div className="bg-card border rounded-xl p-5 space-y-3">
             <Label>Visual style prompt</Label>
