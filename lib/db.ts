@@ -52,6 +52,9 @@ function isConnectionError(err: unknown): boolean {
     code === 'ETIMEDOUT' ||
     name === 'TimeoutError' ||
     name === 'UnknownError' ||
+    name === 'UnrecognizedClientException' ||
+    name === 'CredentialsProviderError' ||
+    name === 'ResourceNotFoundException' ||
     detail === 'Not Found' ||
     (err as any)?.message?.includes('ECONNREFUSED')
   );
