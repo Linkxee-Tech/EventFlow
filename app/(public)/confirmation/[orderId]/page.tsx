@@ -3,8 +3,9 @@ import { getOrder, getTicket, getEvent } from '@/lib/db';
 import { formatCents, formatEventDate } from '@/lib/utils';
 import { QRTicket } from '@/components/event/QRTicket';
 import Link from 'next/link';
+import { ShareButton } from '@/components/event/ShareButton';
 import {
-  CheckCircle, Download, CalendarPlus, Share2,
+  CheckCircle, Download, CalendarPlus,
   ExternalLink
 } from 'lucide-react';
 import type { Metadata } from 'next';
@@ -144,27 +145,7 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
             </span>
           </a>
 
-          <button
-            onClick={async () => {
-              if (navigator.share) {
-                await navigator.share({
-                  title: event.name,
-                  text: `I'm going to ${event.name}! Get your tickets on EventFlow.`,
-                  url: window.location.origin + `/events/${event.slug}`,
-                });
-              } else {
-                await navigator.clipboard.writeText(
-                  window.location.origin + `/events/${event.slug}`
-                );
-              }
-            }}
-            className="flex flex-col items-center gap-1.5 bg-[#1A1A2E] border border-white/8 hover:border-white/20 rounded-xl py-3 px-2 transition-colors group"
-          >
-            <Share2 className="h-4 w-4 text-slate-400 group-hover:text-white transition-colors" />
-            <span className="text-[10px] text-slate-400 group-hover:text-white transition-colors text-center">
-              Share Event
-            </span>
-          </button>
+          <ShareButton eventName={event.name} eventSlug={event.slug} />
         </div>
 
         {/* Apple Wallet placeholder */}

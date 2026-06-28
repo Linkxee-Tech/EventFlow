@@ -1,6 +1,4 @@
-# 🎟 EventFlow — Production-Ready Ticketing Platform
-
-> **Zero-gap implementation. Every phase complete. Ship-ready.**
+EventFlow — Production-Ready Ticketing Platform
 
 Fair-trade ticketing for independent creators. 2.5% + $0.30 flat fee. Atomic DynamoDB inventory. Dynamic QR tickets. Stripe Connect direct payouts.
 
@@ -37,7 +35,7 @@ Fair-trade ticketing for independent creators. 2.5% + $0.30 flat fee. Atomic Dyn
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/your-org/eventflow
+git clone https://github.com/Linkxee-Tech/eventflow
 cd eventflow
 npm install
 ```

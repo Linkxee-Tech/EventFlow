@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { listPublishedEvents } from '@/lib/db';
 import { formatCents, formatEventDate } from '@/lib/utils';
 import { Calendar, MapPin, ArrowRight, Zap, Shield, DollarSign } from 'lucide-react';
+import { EventList } from '@/components/shared/EventList';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -12,7 +13,12 @@ export const metadata: Metadata = {
 export const revalidate = 60;
 
 export default async function HomePage() {
-  const events = await listPublishedEvents(12).catch(() => []);
+  let events: any[] = [];
+  try {
+    events = await listPublishedEvents();
+  } catch (err) {
+    console.error('Failed to load events:', err);
+  }
 
   return (
     <div className="min-h-screen bg-[#0F0F1A] text-white">
@@ -113,64 +119,7 @@ export default async function HomePage() {
 
       {/* Events grid */}
       <section id="events" className="max-w-6xl mx-auto px-6 pb-20">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold">Upcoming events</h2>
-          <span className="text-sm text-slate-400">{events.length} events live</span>
-        </div>
-
-        {events.length === 0 ? (
-          <div className="text-center py-16 border border-dashed border-white/10 rounded-2xl text-slate-500">
-            <p>No events yet. Be the first to</p>
-            <Link href="/register" className="text-indigo-400 hover:text-indigo-300">
-              create one →
-            </Link>
-          </div>
-        ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {events.map((event) => {
-              const minPrice = Math.min(...event.tiers.map((t) => t.price));
-              const totalAvail = event.tiers.reduce((s, t) => s + t.availableCount, 0);
-              return (
-                <Link
-                  key={event.id}
-                  href={`/events/${event.slug}`}
-                  className="group bg-[#1A1A2E] border border-white/8 rounded-2xl overflow-hidden hover:border-indigo-500/30 transition-all hover:-translate-y-0.5"
-                >
-                  <div className="h-32 bg-gradient-to-br from-indigo-900/40 to-purple-900/30 flex items-center justify-center text-5xl">
-                    🎟
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-medium text-sm truncate mb-1 group-hover:text-indigo-300 transition-colors">
-                      {event.name}
-                    </h3>
-                    <div className="flex items-center gap-1 text-xs text-slate-500 mb-1">
-                      <Calendar className="h-3 w-3" />
-                      <span className="truncate">{formatEventDate(event.date)}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-slate-500 mb-3">
-                      <MapPin className="h-3 w-3" />
-                      <span className="truncate">{event.venue}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">
-                        {minPrice === 0 ? 'Free' : `From ${formatCents(minPrice)}`}
-                      </span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        totalAvail === 0
-                          ? 'bg-red-500/10 text-red-400'
-                          : totalAvail < 20
-                          ? 'bg-amber-500/10 text-amber-400'
-                          : 'bg-emerald-500/10 text-emerald-400'
-                      }`}>
-                        {totalAvail === 0 ? 'Sold out' : totalAvail < 20 ? `${totalAvail} left` : 'Available'}
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
+        <EventList events={events} />
       </section>
 
       {/* Footer */}

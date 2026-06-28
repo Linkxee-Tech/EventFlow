@@ -1,8 +1,28 @@
-node_modules
+# Dependencies
+node_modules/
 
+# Build output
+.next/
+dist/
+build/
+out/
+
+# Environment files
 .env
 .env.local
 .env.*.local
-.next/
-package-lock.json
 
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Vercel
+.vercel

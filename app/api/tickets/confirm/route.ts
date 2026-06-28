@@ -9,6 +9,8 @@ import { sendTicketConfirmationEmail } from '@/lib/email';
 import { logError } from '@/lib/logger';
 import type { Order } from '@/types';
 import { z } from 'zod';
+import { checkRateLimit, rateLimitHeaders } from '@/lib/ratelimit';
+import { NextResponse } from 'next/server';
 
 const confirmSchema = z.object({
   reservationId: z.string(),
@@ -21,6 +23,12 @@ const confirmSchema = z.object({
 // Idempotent: uses reservationId as Stripe idempotency key.
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for') ?? req.ip ?? '127.0.0.1';
+    const rateLimit = await checkRateLimit(ip, 'confirm');
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: 'Too Many Requests' }, { status: 429, headers: rateLimitHeaders(rateLimit) });
+    }
+
     const body = await req.json().catch(() => null);
     const parsed = confirmSchema.safeParse(body);
     if (!parsed.success) return apiError(parsed.error.issues[0].message, 422);

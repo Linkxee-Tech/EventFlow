@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { getUser } from '@/lib/db';
+import { getUser, listRecentOrdersByOrganizer } from '@/lib/db';
 import { getConnectAccountBalance } from '@/lib/stripe';
 import { formatCents } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ export default async function PayoutsPage() {
   }
 
   const isConnected = !!profile?.stripeOnboardingComplete;
+  const orders = await listRecentOrdersByOrganizer(userId);
 
   return (
     <div className="p-7 space-y-6">
@@ -78,32 +79,26 @@ export default async function PayoutsPage() {
           <h2 className="text-sm font-medium">Transaction history</h2>
         </div>
         <div className="divide-y">
-          {[
-            { type: 'income', name: 'Ticket sales — Afrobeats Night Out', date: 'Today, 2:14 PM', amount: 10500 },
-            { type: 'income', name: 'Ticket sales — Lagos Tech Founders', date: 'Today, 11:02 AM', amount: 5000 },
-            { type: 'payout', name: 'Bank transfer — GTBank ••••3821', date: 'Jun 15', amount: -50000000 },
-            { type: 'income', name: 'Ticket sales — Sunrise Yoga', date: 'Jun 14', amount: 20000 },
-          ].map((tx, i) => (
-            <div key={i} className="flex items-center gap-3 px-5 py-3.5">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                tx.type === 'income' ? 'bg-emerald-500/10' : 'bg-primary/10'
-              }`}>
-                {tx.type === 'income'
-                  ? <ArrowDownLeft className="h-4 w-4 text-emerald-500" />
-                  : <ArrowUpRight className="h-4 w-4 text-primary" />
-                }
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{tx.name}</p>
-                <p className="text-xs text-muted-foreground">{tx.date}</p>
-              </div>
-              <span className={`text-sm font-semibold ${
-                tx.type === 'income' ? 'text-emerald-500' : 'text-foreground'
-              }`}>
-                {tx.type === 'income' ? '+' : ''}{formatCents(Math.abs(tx.amount))}
-              </span>
+          {orders.length === 0 ? (
+            <div className="px-5 py-8 text-center text-sm text-muted-foreground">
+              No transactions yet.
             </div>
-          ))}
+          ) : (
+            orders.map((tx) => (
+              <div key={tx.orderId} className="flex items-center gap-3 px-5 py-3.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-500/10">
+                  <ArrowDownLeft className="h-4 w-4 text-emerald-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">Ticket sales — Order #{tx.orderId.slice(-6).toUpperCase()}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                </div>
+                <span className="text-sm font-semibold text-emerald-500">
+                  +{formatCents(tx.totalAmount - tx.platformFee)}
+                </span>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

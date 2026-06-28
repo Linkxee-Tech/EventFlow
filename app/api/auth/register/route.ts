@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createHash, randomUUID } from 'crypto';
 import { getUserByEmail, putUser } from '@/lib/db';
+import { z } from 'zod';
+import { checkRateLimit, rateLimitHeaders } from '@/lib/ratelimit';
+
+const registerSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+});
 
 function hashPassword(password: string): string {
   const salt = process.env.NEXTAUTH_SECRET ?? 'eventflow-salt';
@@ -9,14 +17,20 @@ function hashPassword(password: string): string {
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password } = await request.json();
+    const ip = request.headers.get('x-forwarded-for') ?? '127.0.0.1';
+    const rateLimit = await checkRateLimit(ip, 'register');
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: 'Too Many Requests' }, { status: 429, headers: rateLimitHeaders(rateLimit) });
+    }
 
-    if (!name || !email || !password) {
-      return NextResponse.json({ error: 'Name, email and password are required.' }, { status: 400 });
+    const body = await request.json().catch(() => ({}));
+    const parsed = registerSchema.safeParse(body);
+    
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
     }
-    if (password.length < 8) {
-      return NextResponse.json({ error: 'Password must be at least 8 characters.' }, { status: 400 });
-    }
+    
+    const { name, email, password } = parsed.data;
 
     // Check if user already exists
     const existing = await getUserByEmail(email);

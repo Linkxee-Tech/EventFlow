@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getEvent, listTicketsByEvent, updateEventStatus } from '@/lib/db';
@@ -68,6 +69,21 @@ export default async function EventDetailPage({ params }: Props) {
             <Edit3 className="h-3.5 w-3.5" />
             Edit
           </Link>
+          {event.status !== 'cancelled' && (
+            <form action={async () => {
+              'use server';
+              await updateEventStatus(event.id, 'cancelled');
+              revalidatePath(`/dashboard/events/${event.id}`);
+            }}>
+              <button
+                type="submit"
+                className="flex items-center gap-1.5 text-xs bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Cancel Event
+              </button>
+            </form>
+          )}
         </div>
       </div>
 
