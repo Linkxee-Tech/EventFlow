@@ -143,31 +143,41 @@ export async function listEventsByOrganizer(organizerId: string): Promise<Event[
 }
 
 export async function putEvent(event: Omit<Event, 'tiers'>): Promise<void> {
-  await db.send(
-    new PutCommand({
-      TableName: TABLE,
-      Item: {
-        PK: `EVENT#${event.id}`,
-        SK: 'METADATA',
-        ...event,
-      },
-    })
-  );
+  try {
+    await db.send(
+      new PutCommand({
+        TableName: TABLE,
+        Item: {
+          PK: `EVENT#${event.id}`,
+          SK: 'METADATA',
+          ...event,
+        },
+      })
+    );
+  } catch (err) {
+    if (isConnectionError(err)) { mem.memPutEvent(event); return; }
+    throw err;
+  }
 }
 
 export async function updateEventStatus(
   eventId: string,
   status: Event['status']
 ): Promise<void> {
-  await db.send(
-    new UpdateCommand({
-      TableName: TABLE,
-      Key: { PK: `EVENT#${eventId}`, SK: 'METADATA' },
-      UpdateExpression: 'SET #s = :s, updatedAt = :u',
-      ExpressionAttributeNames: { '#s': 'status' },
-      ExpressionAttributeValues: { ':s': status, ':u': new Date().toISOString() },
-    })
-  );
+  try {
+    await db.send(
+      new UpdateCommand({
+        TableName: TABLE,
+        Key: { PK: `EVENT#${eventId}`, SK: 'METADATA' },
+        UpdateExpression: 'SET #s = :s, updatedAt = :u',
+        ExpressionAttributeNames: { '#s': 'status' },
+        ExpressionAttributeValues: { ':s': status, ':u': new Date().toISOString() },
+      })
+    );
+  } catch (err) {
+    if (isConnectionError(err)) { mem.memUpdateEventStatus(eventId, status); return; }
+    throw err;
+  }
 }
 
 export async function deleteEvent(eventId: string): Promise<void> {
@@ -195,16 +205,21 @@ function tierFromDynamo(item: Record<string, unknown>): TicketTier {
 }
 
 export async function putTier(eventId: string, tier: TicketTier): Promise<void> {
-  await db.send(
-    new PutCommand({
-      TableName: TABLE,
-      Item: {
-        PK: `EVENT#${eventId}`,
-        SK: `TIER#${tier.tierId}`,
-        ...tier,
-      },
-    })
-  );
+  try {
+    await db.send(
+      new PutCommand({
+        TableName: TABLE,
+        Item: {
+          PK: `EVENT#${eventId}`,
+          SK: `TIER#${tier.tierId}`,
+          ...tier,
+        },
+      })
+    );
+  } catch (err) {
+    if (isConnectionError(err)) { mem.memPutTier(eventId, tier); return; }
+    throw err;
+  }
 }
 
 export async function getTier(
