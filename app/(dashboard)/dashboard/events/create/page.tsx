@@ -119,9 +119,9 @@ export default function CreateEventPage() {
           tiers: tiers.map((t) => ({
             name: t.name,
             description: t.description || undefined,
-            price: Math.round(parseFloat(t.price) * 100),
-            totalCapacity: parseInt(t.totalCapacity),
-            maxPerOrder: parseInt(t.maxPerOrder),
+            price: Math.round(parseFloat(t.price || '0') * 100),
+            totalCapacity: parseInt(t.totalCapacity || '1', 10),
+            maxPerOrder: parseInt(t.maxPerOrder || '4', 10),
           })),
         }),
       });

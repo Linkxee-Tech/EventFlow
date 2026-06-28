@@ -7,22 +7,22 @@ import type { CreateEventInput, Event } from '@/types';
 import { z } from 'zod';
 
 const createEventSchema = z.object({
-  name: z.string().min(3).max(120),
-  description: z.string().min(10).max(5000),
-  date: z.string().datetime(),
-  endDate: z.string().datetime().optional(),
-  venue: z.string().min(3).max(200),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  date: z.string().min(1),
+  endDate: z.string().optional(),
+  venue: z.string().min(1),
   venueLat: z.number().optional(),
   venueLng: z.number().optional(),
-  imageUrl: z.string().url().optional(),
-  aiFlyerPrompt: z.string().max(200).optional(),
+  imageUrl: z.string().optional().or(z.literal('')),
+  aiFlyerPrompt: z.string().optional(),
   tiers: z.array(z.object({
-    name: z.string().min(1).max(80),
-    description: z.string().max(200).optional(),
-    price: z.number().int().min(0),
-    totalCapacity: z.number().int().min(1).max(100_000),
-    maxPerOrder: z.number().int().min(1).max(20),
-  })).min(1).max(10),
+    name: z.string().min(1),
+    description: z.string().optional(),
+    price: z.number().min(0),
+    totalCapacity: z.number().min(1),
+    maxPerOrder: z.number().min(1),
+  })).min(1),
 });
 
 // GET /api/events — list all events for authenticated organizer
