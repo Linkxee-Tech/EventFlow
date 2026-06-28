@@ -11,8 +11,8 @@ import {
 import type { Metadata } from 'next';
 
 type Props = {
-  params: { orderId: string };
-  searchParams: { payment_intent?: string };
+  params: Promise<{ orderId: string }>;
+  searchParams: Promise<{ payment_intent?: string }>;
 };
 
 export const metadata: Metadata = { title: 'Tickets Confirmed — EventFlow' };
@@ -51,7 +51,8 @@ function buildICSContent(event: { name: string; date: string; venue: string }): 
 }
 
 export default async function ConfirmationPage({ params, searchParams }: Props) {
-  const order = await getOrder(params.orderId);
+  const resolvedParams = await params;
+  const order = await getOrder(resolvedParams.orderId);
   if (!order) notFound();
 
   const event = await getEvent(order.eventId);

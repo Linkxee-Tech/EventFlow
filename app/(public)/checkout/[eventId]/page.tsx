@@ -4,20 +4,23 @@ import { CheckoutClient } from './CheckoutClient';
 import type { Metadata } from 'next';
 
 type Props = {
-  params: { eventId: string };
-  searchParams: { reservation?: string; secret?: string; tierId?: string; qty?: string };
+  params: Promise<{ eventId: string }>;
+  searchParams: Promise<{ reservation?: string; secret?: string; tierId?: string; qty?: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const event = await getEvent(params.eventId);
+  const resolvedParams = await params;
+  const event = await getEvent(resolvedParams.eventId);
   return { title: event ? `Checkout — ${event.name}` : 'Checkout' };
 }
 
 export default async function CheckoutPage({ params, searchParams }: Props) {
-  const event = await getEvent(params.eventId);
+  const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
+  const event = await getEvent(resolvedParams.eventId);
   if (!event || event.status !== 'published') notFound();
 
-  const { reservation, secret, tierId, qty } = searchParams;
+  const { reservation, secret, tierId, qty } = resolvedSearchParams;
 
   // Must have a reservation ID and Stripe client secret to render checkout
   if (!reservation || !secret) {

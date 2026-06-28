@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { formatCents, calculateFee } from '@/types';
+import { formatCents } from '@/lib/utils';
+import { calculateFee } from '@/types';
 import type { Event, TicketTier } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

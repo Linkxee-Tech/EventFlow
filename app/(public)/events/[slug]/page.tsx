@@ -4,13 +4,14 @@ import { formatEventDate } from '@/lib/utils';
 import { EventPageClient } from './EventPageClient';
 import type { Metadata } from 'next';
 
-type Props = { params: { slug: string } };
+type Props = { params: Promise<{ slug: string }> };
 
 // Phase 2: ISR — revalidate every 60 seconds
 export const revalidate = 60;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const event = await getEventBySlug(params.slug);
+  const resolvedParams = await params;
+  const event = await getEventBySlug(resolvedParams.slug);
   if (!event) return { title: 'Event not found' };
   return {
     title: event.name,
@@ -26,7 +27,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function EventPage({ params }: Props) {
-  const event = await getEventBySlug(params.slug);
+  const resolvedParams = await params;
+  const event = await getEventBySlug(resolvedParams.slug);
   if (!event || event.status !== 'published') notFound();
 
   return <EventPageClient event={event} />;

@@ -3,16 +3,17 @@ import { getEvent, listTicketsByEvent } from '@/lib/db';
 import { apiSuccess, apiError, requireAuth } from '@/lib/utils';
 import { logError } from '@/lib/logger';
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_req: NextRequest, { params }: Params) {
   try {
+    const resolvedParams = await params;
     const auth = await requireAuth();
     if (!auth) return apiError('Unauthorized', 401);
-    const event = await getEvent(params.id);
+    const event = await getEvent(resolvedParams.id);
     if (!event) return apiError('Event not found', 404);
     if (event.organizerId !== auth.userId) return apiError('Forbidden', 403);
-    const tickets = await listTicketsByEvent(params.id);
+    const tickets = await listTicketsByEvent(resolvedParams.id);
     const attendees = tickets
       .filter((t) => t.status === 'paid' || t.status === 'used')
       .map((t) => ({

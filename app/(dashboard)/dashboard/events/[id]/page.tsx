@@ -9,22 +9,24 @@ import Link from 'next/link';
 import { ArrowLeft, Edit3, ScanLine, Globe, Trash2, Users, DollarSign, Ticket } from 'lucide-react';
 import type { Metadata } from 'next';
 
-type Props = { params: { id: string } };
+type Props = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const event = await getEvent(params.id);
+  const resolvedParams = await params;
+  const event = await getEvent(resolvedParams.id);
   return { title: event ? `${event.name} — Dashboard` : 'Event' };
 }
 
 export default async function EventDetailPage({ params }: Props) {
+  const resolvedParams = await params;
   const session = await getServerSession(authOptions);
   const userId = (session?.user as any)?.id ?? '';
 
-  const event = await getEvent(params.id);
+  const event = await getEvent(resolvedParams.id);
   if (!event) notFound();
   if (event.organizerId !== userId) redirect('/dashboard/events');
 
-  const tickets = await listTicketsByEvent(params.id);
+  const tickets = await listTicketsByEvent(resolvedParams.id);
   const paid = tickets.filter((t) => t.status === 'paid' || t.status === 'used');
   const checkedIn = tickets.filter((t) => t.status === 'used');
   const totalRevenue = paid.reduce((s, t) => s + t.pricePaid, 0);

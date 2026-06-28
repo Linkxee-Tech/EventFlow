@@ -163,7 +163,7 @@ export function EventPageClient({ event }: Props) {
                       <p className="text-xs text-slate-400 mb-2">{tier.description}</p>
                     )}
                     <div className="flex items-center justify-between text-[10px] text-slate-500 mb-1">
-                      <span>{avail?.total - avail?.available ?? tier.soldCount} / {avail?.total ?? tier.totalCapacity} sold</span>
+                      <span>{avail ? avail.total - avail.available : tier.soldCount} / {avail?.total ?? tier.totalCapacity} sold</span>
                       <span>{pct}%</span>
                     </div>
                     <div className="h-1 bg-white/8 rounded-full overflow-hidden">

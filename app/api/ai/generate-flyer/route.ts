@@ -18,7 +18,7 @@ const flyerSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get('x-forwarded-for') ?? req.ip ?? '127.0.0.1';
+    const ip = req.headers.get('x-forwarded-for') ?? '127.0.0.1';
     const rateLimit = await checkRateLimit(ip, 'ai-flyer');
     if (!rateLimit.success) {
       return NextResponse.json({ error: 'Too Many Requests' }, { status: 429, headers: rateLimitHeaders(rateLimit) });
@@ -42,7 +42,7 @@ Event: "${eventName}" | Date: ${eventDate} | Venue: ${venue} | Theme: ${theme} |
 Return ONLY valid JSON (no markdown) with keys:
 { "copy": "2-3 sentence description", "tagline": "under 8 words", "imagePrompt": "detailed SDXL prompt for 1024x1024 flyer", ${captionSection} }`;
 
-    const { text } = await generateText({ model: openai('gpt-4-turbo'), prompt, maxTokens: 800 });
+    const { text } = await generateText({ model: openai('gpt-4-turbo'), prompt });
 
     let result: any;
     try { result = JSON.parse(text.replace(/```json|```/g, '').trim()); }

@@ -3,11 +3,12 @@ import { getEventBySlug } from '@/lib/db';
 import { apiSuccess, apiError } from '@/lib/utils';
 import { logError } from '@/lib/logger';
 
-type Params = { params: { slug: string } };
+type Params = { params: Promise<{ slug: string }> };
 
 export async function GET(_req: NextRequest, { params }: Params) {
   try {
-    const event = await getEventBySlug(params.slug);
+    const resolvedParams = await params;
+    const event = await getEventBySlug(resolvedParams.slug);
     if (!event || event.status !== 'published') return apiError('Event not found', 404);
     const availability: Record<string, { available: number; total: number; soldOut: boolean }> = {};
     for (const tier of event.tiers) {

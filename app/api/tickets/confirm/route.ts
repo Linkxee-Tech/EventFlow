@@ -23,7 +23,7 @@ const confirmSchema = z.object({
 // Idempotent: uses reservationId as Stripe idempotency key.
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get('x-forwarded-for') ?? req.ip ?? '127.0.0.1';
+    const ip = req.headers.get('x-forwarded-for') ?? '127.0.0.1';
     const rateLimit = await checkRateLimit(ip, 'confirm');
     if (!rateLimit.success) {
       return NextResponse.json({ error: 'Too Many Requests' }, { status: 429, headers: rateLimitHeaders(rateLimit) });

@@ -7,21 +7,22 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
 
-type Props = { params: { id: string } };
+type Props = { params: Promise<{ id: string }> };
 
 export const metadata: Metadata = { title: 'Check-in Scanner' };
 
 export default async function EventScanPage({ params }: Props) {
+  const resolvedParams = await params;
   const session = await getServerSession(authOptions);
   const userId = (session?.user as any)?.id ?? '';
 
-  const event = await getEvent(params.id);
+  const event = await getEvent(resolvedParams.id);
   if (!event) notFound();
   if (event.organizerId !== userId) redirect('/dashboard/events');
-  if (event.status !== 'published') redirect(`/dashboard/events/${params.id}`);
+  if (event.status !== 'published') redirect(`/dashboard/events/${resolvedParams.id}`);
 
   // Pre-load all valid ticket hashes for offline mode
-  const tickets = await listTicketsByEvent(params.id);
+  const tickets = await listTicketsByEvent(resolvedParams.id);
   const validHashes = tickets
     .filter((t) => t.status === 'paid')
     .map((t) => ({ ticketId: t.ticketId, qrHash: t.qrHash, buyerName: t.buyerName, tierId: t.tierId }));
@@ -33,7 +34,7 @@ export default async function EventScanPage({ params }: Props) {
     <div className="p-6 lg:p-8">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Link href={`/dashboard/events/${params.id}`}
+          <Link href={`/dashboard/events/${resolvedParams.id}`}
             className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors">
             <ArrowLeft className="h-4 w-4" />
           </Link>

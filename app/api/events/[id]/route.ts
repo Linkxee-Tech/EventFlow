@@ -17,13 +17,14 @@ const updateEventSchema = z.object({
   aiFlyerPrompt: z.string().optional(),
 });
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_req: NextRequest, { params }: Params) {
   try {
+    const resolvedParams = await params;
     const auth = await requireAuth();
     if (!auth) return apiError('Unauthorized', 401);
-    const event = await getEvent(params.id);
+    const event = await getEvent(resolvedParams.id);
     if (!event) return apiError('Event not found', 404);
     if (event.organizerId !== auth.userId) return apiError('Forbidden', 403);
     return apiSuccess(event);
@@ -35,9 +36,10 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
 export async function PUT(req: NextRequest, { params }: Params) {
   try {
+    const resolvedParams = await params;
     const auth = await requireAuth();
     if (!auth) return apiError('Unauthorized', 401);
-    const event = await getEvent(params.id);
+    const event = await getEvent(resolvedParams.id);
     if (!event) return apiError('Event not found', 404);
     if (event.organizerId !== auth.userId) return apiError('Forbidden', 403);
     const body = await req.json().catch(() => ({}));
@@ -64,13 +66,14 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
   try {
+    const resolvedParams = await params;
     const auth = await requireAuth();
     if (!auth) return apiError('Unauthorized', 401);
-    const event = await getEvent(params.id);
+    const event = await getEvent(resolvedParams.id);
     if (!event) return apiError('Event not found', 404);
     if (event.organizerId !== auth.userId) return apiError('Forbidden', 403);
     if (event.status === 'published') return apiError('Cannot delete a published event. Cancel it first.', 409);
-    await deleteEvent(params.id);
+    await deleteEvent(resolvedParams.id);
     return apiSuccess({ deleted: true });
   } catch (err) {
     logError('DELETE /api/events/[id]', err);
