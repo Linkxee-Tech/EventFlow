@@ -58,6 +58,7 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'jwt', // Stateless — works perfectly with Vercel serverless
   },
+  secret: process.env.NEXTAUTH_SECRET || 'eventflow-default-secret-do-not-use-in-real-prod',
 
   callbacks: {
     async jwt({ token, user, account }) {

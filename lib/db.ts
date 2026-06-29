@@ -54,6 +54,8 @@ function isConnectionError(err: unknown): boolean {
     name === 'TimeoutError' ||
     name === 'UnknownError' ||
     name === 'UnrecognizedClientException' ||
+    name === 'InvalidSignatureException' ||
+    name === 'AccessDeniedException' ||
     name === 'CredentialsProviderError' ||
     name === 'ResourceNotFoundException' ||
     detail === 'Not Found' ||
