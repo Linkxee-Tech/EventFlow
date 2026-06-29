@@ -41,7 +41,7 @@ export default function RegisterPage() {
       });
       if (result?.url) {
         toast.success('Account created! Welcome to EventFlow 🎉');
-        router.push(result.url);
+        window.location.href = result.url;
       } else {
         toast.error('Account created but sign-in failed. Please log in.');
         router.push('/login');

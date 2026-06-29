@@ -4,8 +4,11 @@ import { ScanCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const cookieHeader = request.headers.get('cookie') || '';
+  
   const diagnostics: any = {
+    cookies: cookieHeader.includes('next-auth.session-token') ? 'Session cookie exists!' : 'No session cookie found!',
     env: {
       hasAwsAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
       hasAwsSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,

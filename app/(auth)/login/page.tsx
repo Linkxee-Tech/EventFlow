@@ -28,7 +28,7 @@ export default function LoginPage() {
       if (result?.error) {
         toast.error('Invalid email or password. Please try again.');
       } else if (result?.url) {
-        router.push(result.url);
+        window.location.href = result.url;
       }
     } catch {
       toast.error('Network error. Please try again.');
