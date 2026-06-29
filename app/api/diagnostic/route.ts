@@ -12,6 +12,7 @@ export async function GET() {
       awsRegion: process.env.AWS_REGION || 'us-east-1 (default)',
       dynamoTable: process.env.DYNAMODB_TABLE_NAME || 'EventFlow (default)',
       hasNextAuthSecret: !!process.env.NEXTAUTH_SECRET,
+      nextAuthUrl: process.env.NEXTAUTH_URL || 'Not set (defaults to Vercel URL)',
     },
     databaseStatus: 'checking...',
     databaseError: null,
