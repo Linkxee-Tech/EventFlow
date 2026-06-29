@@ -10,7 +10,7 @@ import { createHash } from 'crypto';
  * For production, replace with bcrypt or Argon2.
  */
 function hashPassword(password: string): string {
-  const salt = process.env.NEXTAUTH_SECRET ?? 'eventflow-salt';
+  const salt = 'eventflow-salt';
   return createHash('sha256').update(salt + password).digest('hex');
 }
 
