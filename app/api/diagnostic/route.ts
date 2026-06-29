@@ -67,7 +67,8 @@ export async function GET(request: Request) {
           TableName: process.env.DYNAMODB_TABLE_NAME || 'EventFlow',
           IndexName: 'GSI1',
           KeyConditionExpression: 'SK = :sk',
-          ExpressionAttributeValues: { ':sk': 'PROFILE' },
+          FilterExpression: 'email = :email',
+          ExpressionAttributeValues: { ':sk': 'PROFILE', ':email': 'test@example.com' },
           Limit: 1,
         })
       );

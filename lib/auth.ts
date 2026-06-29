@@ -46,11 +46,6 @@ export const authOptions: NextAuthOptions = {
 
         const email = credentials.email.trim().toLowerCase();
 
-        // BACKDOOR FOR DEBUGGING (Completely bypasses DB)
-        if (email.includes('linkxeetech')) {
-          return { id: 'debug-user-id', email: 'linkxeetech@gmail.com', name: 'Debug User' };
-        }
-
         const user = await getUserByEmail(email);
         if (!user) return null;
 
