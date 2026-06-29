@@ -42,16 +42,30 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        if (!credentials?.email || !credentials?.password) {
+          console.log('[AUTH] Missing email or password');
+          return null;
+        }
 
         const email = credentials.email.trim().toLowerCase();
+        console.log('[AUTH] LOGIN EMAIL:', email);
 
         const user = await getUserByEmail(email);
+        console.log('[AUTH] FOUND USER:', user ? `Yes (${user.userId})` : 'No');
+
         if (!user) return null;
 
         // Check password hash
-        if (user.passwordHash !== hashPassword(credentials.password)) return null;
+        const hashedPassword = hashPassword(credentials.password);
+        console.log('[AUTH] PROVIDED HASH:', hashedPassword);
+        console.log('[AUTH] STORED HASH:', user.passwordHash);
 
+        if (user.passwordHash !== hashedPassword) {
+          console.log('[AUTH] Password mismatch!');
+          return null;
+        }
+
+        console.log('[AUTH] Login successful for:', email);
         return { id: user.userId, email: user.email, name: user.name };
       },
     }),
