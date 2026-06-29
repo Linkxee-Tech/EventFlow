@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     // next-auth/jwt getToken can parse it manually
     decodedToken = await getToken({ 
       req: request as any, 
-      secret: process.env.NEXTAUTH_SECRET || 'eventflow-default-secret-do-not-use-in-real-prod' 
+      secret: 'eventflow-default-secret-do-not-use-in-real-prod' 
     });
   } catch (e: any) {
     tokenError = e.message;
