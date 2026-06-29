@@ -18,7 +18,6 @@ import { sendTicketConfirmationEmail } from '@/lib/email';
 import { generateId } from '@/lib/utils';
 import type { Order } from '@/types';
 
-export const config = { api: { bodyParser: false } };
 
 export async function POST(req: NextRequest) {
   const rawBody = Buffer.from(await req.arrayBuffer());
