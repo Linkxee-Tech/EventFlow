@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { ScanCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 
 export const dynamic = 'force-dynamic';
@@ -7,8 +9,18 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   const cookieHeader = request.headers.get('cookie') || '';
   
+  let session = null;
+  let sessionError = null;
+  try {
+    session = await getServerSession(authOptions);
+  } catch (e: any) {
+    sessionError = e.message;
+  }
+
   const diagnostics: any = {
     cookies: cookieHeader.includes('next-auth.session-token') ? 'Session cookie exists!' : 'No session cookie found!',
+    session: session ? 'Found user!' : 'Null session',
+    sessionError,
     env: {
       hasAwsAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
       hasAwsSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
