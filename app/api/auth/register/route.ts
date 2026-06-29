@@ -11,7 +11,7 @@ const registerSchema = z.object({
 });
 
 function hashPassword(password: string): string {
-  const salt = process.env.NEXTAUTH_SECRET ?? 'eventflow-salt';
+  const salt = 'eventflow-salt';
   return createHash('sha256').update(salt + password).digest('hex');
 }
 
