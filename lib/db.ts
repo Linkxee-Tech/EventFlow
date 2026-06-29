@@ -21,7 +21,7 @@ import * as mem from '@/lib/db-memory';
 const isLocalDynamo = !!process.env.DYNAMODB_ENDPOINT;
 
 const clientConfig: any = {
-  region: process.env.AWS_REGION ?? 'us-east-1',
+  region: process.env.AWS_REGION ?? 'eu-north-1',
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? 'local',
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? 'local',
@@ -37,7 +37,7 @@ export const db = DynamoDBDocumentClient.from(client, {
   marshallOptions: { removeUndefinedValues: true },
 });
 
-const TABLE = process.env.DYNAMODB_TABLE_NAME ?? 'EventFlow';
+const TABLE = process.env.DYNAMODB_TABLE_NAME ?? 'eventflow';
 
 /**
  * Returns true for network-level errors (Docker not running, DynamoDB unreachable).
