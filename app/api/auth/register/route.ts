@@ -30,7 +30,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
     }
     
-    const { name, email, password } = parsed.data;
+    let { name, email, password } = parsed.data;
+    email = email.trim().toLowerCase();
 
     // Check if user already exists
     const existing = await getUserByEmail(email);
