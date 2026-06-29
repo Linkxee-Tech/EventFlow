@@ -73,7 +73,7 @@ function SidebarContent({ user, onNavClick }: { user: User; onNavClick?: () => v
       {/* Logo + top bar */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-white/[0.06]">
         <Link href="/dashboard" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center text-base">🎟</div>
+          <img src="/logo.svg" alt="EventFlow Logo" className="w-8 h-8" />
           <span className="font-semibold tracking-tight text-white">EventFlow</span>
         </Link>
         <div className="flex items-center gap-1">

@@ -28,10 +28,10 @@ export default async function HomePage() {
     <div className="min-h-screen bg-[#0F0F1A] text-white">
       {/* Nav */}
       <nav className="border-b border-white/5 px-6 py-4 flex items-center justify-between max-w-6xl mx-auto">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center text-base">🎟</div>
+        <Link href="/" className="flex items-center gap-2">
+          <img src="/logo.svg" alt="EventFlow Logo" className="w-8 h-8" />
           <span className="font-semibold tracking-tight">EventFlow</span>
-        </div>
+        </Link>
         <div className="flex items-center gap-3">
           {session ? (
             <>

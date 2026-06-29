@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
+  <defs>
+    <!-- Cyan Gradient -->
+    <linearGradient id="cyanGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0052D4" />
+      <stop offset="100%" stop-color="#4364F7" />
+    </linearGradient>
+    
+    <!-- Purple Gradient -->
+    <linearGradient id="purpleGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8E2DE2" />
+      <stop offset="100%" stop-color="#4A00E0" />
+    </linearGradient>
+
+    <!-- Orange Gradient -->
+    <linearGradient id="orangeGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF416C" />
+      <stop offset="100%" stop-color="#FF4B2B" />
+    </linearGradient>
+  </defs>
+
+  <!-- Top Curve (Cyan) -->
+  <path d="M 200 250 C 250 150 250 100 400 100 L 400 150 C 280 150 280 200 240 250 Z" fill="url(#cyanGrad)" />
+  
+  <!-- Middle Curve (Purple) -->
+  <path d="M 180 300 C 230 200 250 200 400 200 L 400 250 C 280 250 260 250 220 300 Z" fill="url(#purpleGrad)" />
+
+  <!-- Bottom Curve (Orange) -->
+  <path d="M 220 350 C 250 280 250 300 400 300 L 400 350 C 300 350 280 400 260 350 Z" fill="url(#orangeGrad)" />
+  
+  <!-- Pixels (Squares) -->
+  <rect x="150" y="200" width="15" height="15" fill="#4364F7" />
+  <rect x="120" y="210" width="10" height="10" fill="#0052D4" />
+  <rect x="160" y="250" width="15" height="15" fill="#8E2DE2" />
+  <rect x="130" y="260" width="10" height="10" fill="#4A00E0" />
+  <rect x="190" y="310" width="15" height="15" fill="#FF416C" />
+  <rect x="150" y="320" width="10" height="10" fill="#FF4B2B" />
+</svg>

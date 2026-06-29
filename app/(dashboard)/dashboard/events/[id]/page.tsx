@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { getEvent, listTicketsByEvent, updateEventStatus } from '@/lib/db';
 import { formatCents, formatEventDate } from '@/lib/utils';
 import { AttendeeList } from '@/components/dashboard/AttendeeList';
+import { CopyLinkButton } from '@/components/dashboard/CopyLinkButton';
 import Link from 'next/link';
 import { ArrowLeft, Edit3, ScanLine, Globe, Trash2, Users, DollarSign, Ticket } from 'lucide-react';
 import type { Metadata } from 'next';
@@ -64,6 +65,7 @@ export default async function EventDetailPage({ params }: Props) {
             <Globe className="h-3.5 w-3.5" />
             View page
           </Link>
+          <CopyLinkButton slug={event.slug} />
           <Link
             href={`/dashboard/events/${event.id}/edit`}
             className="flex items-center gap-1.5 text-xs bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
