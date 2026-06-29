@@ -44,6 +44,10 @@ const TABLE = process.env.DYNAMODB_TABLE_NAME ?? 'EventFlow';
  * In these cases we fall back to the in-memory store automatically.
  */
 function isConnectionError(err: unknown): boolean {
+  if (!process.env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID === 'local') {
+    return true; // Force fallback if real AWS credentials are not configured
+  }
+
   const code = (err as any)?.code ?? (err as any)?.$metadata?.httpStatusCode;
   const name = (err as any)?.name;
   const detail = (err as any)?.detail;
@@ -56,6 +60,7 @@ function isConnectionError(err: unknown): boolean {
     name === 'UnrecognizedClientException' ||
     name === 'InvalidSignatureException' ||
     name === 'AccessDeniedException' ||
+    name === 'ValidationException' ||
     name === 'CredentialsProviderError' ||
     name === 'ResourceNotFoundException' ||
     detail === 'Not Found' ||

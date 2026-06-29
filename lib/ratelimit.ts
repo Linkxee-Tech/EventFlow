@@ -45,18 +45,18 @@ export async function checkRateLimit(
 
   const { Ratelimit: RL, Redis: R } = clients;
 
-  const redis = new R({
-    url: process.env.UPSTASH_REDIS_REST_URL!,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-  });
-
-  const limiter = new RL({
-    redis,
-    limiter: RL.slidingWindow(5, '1 m'), // 5 requests per minute per IP
-    prefix: `eventflow:${endpoint}`,
-  });
-
   try {
+    const redis = new R({
+      url: process.env.UPSTASH_REDIS_REST_URL!,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+    });
+
+    const limiter = new RL({
+      redis,
+      limiter: RL.slidingWindow(5, '1 m'), // 5 requests per minute per IP
+      prefix: `eventflow:${endpoint}`,
+    });
+
     const result = await limiter.limit(identifier);
 
     return {
