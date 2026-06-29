@@ -49,8 +49,12 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ success: true, userId });
-  } catch (err) {
+  } catch (err: any) {
     console.error('[register]', err);
-    return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Internal server error.', 
+      details: err?.message || String(err),
+      name: err?.name
+    }, { status: 500 });
   }
 }
