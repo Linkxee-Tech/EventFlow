@@ -116,7 +116,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
         } else {
           // Create new
           const newTier = {
-            tierId: generateId(8),
+            tierId: generateId('tier'),
             name: t.name,
             description: t.description,
             price: t.price,
