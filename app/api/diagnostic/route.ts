@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getServerSession } from 'next-auth';
+import { getToken } from 'next-auth/jwt';
 import { authOptions } from '@/lib/auth';
 import { ScanCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 
@@ -11,16 +12,32 @@ export async function GET(request: Request) {
   
   let session = null;
   let sessionError = null;
+  let decodedToken = null;
+  let tokenError = null;
+
   try {
     session = await getServerSession(authOptions);
   } catch (e: any) {
     sessionError = e.message;
   }
 
+  try {
+    // next-auth/jwt getToken can parse it manually
+    decodedToken = await getToken({ 
+      req: request as any, 
+      secret: process.env.NEXTAUTH_SECRET || 'eventflow-default-secret-do-not-use-in-real-prod' 
+    });
+  } catch (e: any) {
+    tokenError = e.message;
+  }
+
   const diagnostics: any = {
     cookies: cookieHeader.includes('next-auth.session-token') ? 'Session cookie exists!' : 'No session cookie found!',
+    cookieList: cookieHeader.split(';').map(c => c.trim().split('=')[0]),
     session: session ? 'Found user!' : 'Null session',
     sessionError,
+    decodedToken: decodedToken ? 'Valid Token!' : 'Null Token',
+    tokenError,
     env: {
       hasAwsAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
       hasAwsSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
