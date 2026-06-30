@@ -5,6 +5,15 @@ import { db, getUser, putUser, getUserByEmail } from '@/lib/db';
 import type { UserProfile } from '@/types';
 import { createHash } from 'crypto';
 
+// Force NEXTAUTH_SECRET so Vercel doesn't crash NextAuth entirely
+if (!process.env.NEXTAUTH_SECRET) {
+  process.env.NEXTAUTH_SECRET = 'eventflow-default-secret-do-not-use-in-real-prod';
+}
+// Force NEXTAUTH_URL to Vercel URL to prevent CSRF mismatches from local envs
+if (process.env.VERCEL_URL) {
+  process.env.NEXTAUTH_URL = `https://${process.env.VERCEL_URL}`;
+}
+
 /**
  * Simple password hashing — SHA-256 with a server-side salt.
  * For production, replace with bcrypt or Argon2.
