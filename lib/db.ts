@@ -489,16 +489,15 @@ export async function getUserByEmail(
   email: string
 ): Promise<(UserProfile & { passwordHash?: string }) | null> {
   try {
-    // EMERGENCY FIX: Use ScanCommand to bypass GSI1 completely in case it's misconfigured
+    // EMERGENCY FIX: Scan ENTIRE table and filter in memory to bypass any FilterExpression bugs
     const { Items = [] } = await db.send(
       new ScanCommand({
         TableName: TABLE,
-        FilterExpression: 'SK = :sk AND email = :email',
-        ExpressionAttributeValues: { ':sk': 'PROFILE', ':email': email },
       })
     );
-    if (!Items.length) return null;
-    return Items[0] as UserProfile & { passwordHash?: string };
+    const user = Items.find(i => i.SK === 'PROFILE' && i.email === email);
+    if (!user) return null;
+    return user as UserProfile & { passwordHash?: string };
   } catch (err) {
     if (isConnectionError(err)) return mem.memGetUserByEmail(email);
     throw err;

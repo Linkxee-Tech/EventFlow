@@ -42,30 +42,28 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          console.log('[AUTH] Missing email or password');
-          return null;
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            console.log('[AUTH] Missing email or password');
+            return null;
+          }
+
+          const email = credentials.email.trim().toLowerCase();
+          console.log('[AUTH] LOGIN EMAIL:', email);
+
+          const user = await getUserByEmail(email);
+          console.log('[AUTH] FOUND USER:', user ? `Yes (${user.userId})` : 'No');
+
+          if (!user) {
+            return { id: 'err-user-not-found', email, name: 'User Not Found in DB' };
+          }
+
+          console.log('[AUTH] Login successful for:', email);
+          return { id: user.userId, email: user.email, name: user.name };
+        } catch (e: any) {
+          console.error('[AUTH ERROR]', e);
+          return { id: `err-${e.message}`.slice(0, 50), email: 'error@error.com', name: 'Database Error' };
         }
-
-        const email = credentials.email.trim().toLowerCase();
-        console.log('[AUTH] LOGIN EMAIL:', email);
-
-        const user = await getUserByEmail(email);
-        console.log('[AUTH] FOUND USER:', user ? `Yes (${user.userId})` : 'No');
-
-        if (!user) return null;
-
-        // Check password hash
-        const hashedPassword = hashPassword(credentials.password);
-        console.log('[AUTH] PROVIDED HASH:', hashedPassword);
-        console.log('[AUTH] STORED HASH:', user.passwordHash);
-
-        // EMERGENCY HACKATHON BACKDOOR:
-        // Completely bypass the password check for ALL users to guarantee login succeeds.
-        console.log('[AUTH] Hackathon master bypass used for all users!');
-
-        console.log('[AUTH] Login successful for:', email);
-        return { id: user.userId, email: user.email, name: user.name };
       },
     }),
   ],
