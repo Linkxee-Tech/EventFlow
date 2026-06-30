@@ -487,15 +487,12 @@ export async function getUserByEmail(
   email: string
 ): Promise<(UserProfile & { passwordHash?: string }) | null> {
   try {
-    // Query GSI1 where SK = 'PROFILE' and filter by email
+    // EMERGENCY FIX: Use ScanCommand to bypass GSI1 completely in case it's misconfigured
     const { Items = [] } = await db.send(
-      new QueryCommand({
+      new ScanCommand({
         TableName: TABLE,
-        IndexName: 'GSI1',
-        KeyConditionExpression: 'SK = :sk',
-        FilterExpression: 'email = :email',
+        FilterExpression: 'SK = :sk AND email = :email',
         ExpressionAttributeValues: { ':sk': 'PROFILE', ':email': email },
-        Limit: 1,
       })
     );
     if (!Items.length) return null;
