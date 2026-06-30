@@ -44,6 +44,8 @@ const TABLE = process.env.DYNAMODB_TABLE_NAME ?? 'eventflow';
  * In these cases we fall back to the in-memory store automatically.
  */
 function isConnectionError(err: unknown): boolean {
+  if (process.env.NODE_ENV === 'production') return false; // NEVER fallback to memory in production
+
   if (!process.env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID === 'local') {
     return true; // Force fallback if real AWS credentials are not configured
   }
