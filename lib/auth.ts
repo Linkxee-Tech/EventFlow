@@ -65,6 +65,8 @@ export const authOptions: NextAuthOptions = {
           return { id: `err-${e.message}`.slice(0, 50), email: 'error@error.com', name: 'Database Error' };
         }
       },
+    }),
+  ],
   session: {
     strategy: 'jwt', // Stateless — works perfectly with Vercel serverless
   },
