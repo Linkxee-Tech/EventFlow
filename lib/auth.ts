@@ -65,9 +65,6 @@ export const authOptions: NextAuthOptions = {
           return { id: `err-${e.message}`.slice(0, 50), email: 'error@error.com', name: 'Database Error' };
         }
       },
-    }),
-  ],
-
   session: {
     strategy: 'jwt', // Stateless — works perfectly with Vercel serverless
   },
@@ -78,9 +75,14 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.userId = user.id;
         // Fetch role from DB on first sign-in
-        const profile = await getUser(user.id);
-        token.role = profile?.role ?? 'organizer';
-        token.stripeAccountId = profile?.stripeAccountId;
+        try {
+          const profile = await getUser(user.id);
+          token.role = profile?.role ?? 'organizer';
+          token.stripeAccountId = profile?.stripeAccountId;
+        } catch (e: any) {
+          console.error('[JWT ERROR]', e);
+          token.role = 'organizer'; // Fallback
+        }
       }
       return token;
     },
